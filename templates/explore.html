@@ -1,0 +1,212 @@
+{% load static %}
+<html lang="en">
+
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="{% static 'favicon.png' %}" rel="icon" type="image/png">
+    <title>Home</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{% static 'assets/css/icons.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/uikit.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/tailwind.css' %}">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+
+<body>
+
+            <header>
+                <div class="header_inner">
+                    <form action="/search" method="POST">
+                    {% csrf_token %}
+                    <div class="left-side">
+                        <div id="logo" class=" uk-hidden@s">
+                            <a href="home.html">
+                                <b><h1 style="text-transform: uppercase;">Social Book</h1></b>
+                            </a>
+                        </div>
+                            <input type="text" name="username" placeholder="Search for username..">&nbsp; &nbsp;
+                            <button type="submit"><i class="fa fa-search fa-1x"></i></button>
+
+                    </div>
+                    </form>
+                    <div class="right-side lg:pr-4">
+                        <a href="/" title="Home" style="display: inline-block; margin-left: 20px; color: black;">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="black" width="24" height="24" viewBox="0 0 24 24">
+                                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                            </svg>
+                        </a>
+
+                       <a href="#">
+                            <img src="{{ user_profile.profileimg.url }}" class="header-avatar" alt="">
+                       </a>
+                        <div uk-drop="mode: click;offset:9" class="header_dropdown profile_dropdown border-t">
+                            <ul>
+                                <li><a href="/settings"> Account setting </a> </li>
+                                <li><a href="/profile/{{ user.username }}"> Profile </a> </li>
+                                <li><a href="logout"> Log Out</a></li>
+                            </ul>
+                        </div>
+
+                    </div>
+                </div>
+            </header>
+
+
+            <div class="container m-auto">
+
+
+                <div class="lg:flex justify-center lg:space-x-10 lg:space-y-0 space-y-5">
+
+                    <!-- left sidebar-->
+                    <div class="space-y-5 flex-shrink-0 lg:w-10/12">
+
+                        <!-- post 1-->
+
+                        {% for post in posts %}
+                        <div class="bg-white shadow rounded-md  -mx-2 lg:mx-0">
+
+                            <!-- post header-->
+                            <div class="flex justify-between items-center px-4 py-3">
+                                <div class="flex flex-1 items-center space-x-4">
+                                    <span class="block font-semibold "><a href="/profile/{{post.user}}">@{{post.user}}</a></span>
+                                </div>
+                            </div>
+
+                            <div class="post-media mb-3">
+                                    {% if post.image %}
+                                    {% if post.image.url|lower|slice:'-4:' == '.mp4' or post.image.url|lower|slice:'-5:' == '.webm' or post.image.url|lower|slice:'-4:' == '.mov' %}
+                                    <video controls style="width: 100%; max-height: 500px; object-fit: cover; border-radius: 8px;">
+                                        <source src="{{ post.image.url }}" type="video/mp4">
+                                    </video>
+                                    {% else %}
+                                    <a href="{{ post.image.url }}" uk-lightbox>
+                                        <img src="{{ post.image.url }}" alt="post media" style="width: 100%; max-height: 500px; object-fit: cover; border-radius: 8px;">
+                                    </a>
+                                    {% endif %}
+                                    {% endif %}
+                                </div>
+
+
+
+                            <div class="py-3 px-4 space-y-3">
+
+                                <div class="flex space-x-4 lg:font-bold">
+                                    <a href="/like-post?post_id={{post.id}}" class="flex items-center space-x-2">
+                                        <div class="p-2 rounded-full text-black">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="25" height="25" class="">
+                                                <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
+                                            </svg>
+                                            {% if post.no_of_likes == 0 %}
+                                            <p>No likes</p>
+                                            {% elif post.no_of_likes == 1 %}
+                                            <p>Liked by {{post.no_of_likes}} person</p>
+                                            {% else %}
+                                            <p>Liked by {{post.no_of_likes}} people</p>
+                                            {% endif %}
+                                        </div>
+
+                                    </a>
+
+                                    <a href="{{post.image.url}}" class="flex items-center space-x-2 flex-1 justify-end" download>
+                                        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" width="25" height="25" preserveAspectRatio="xMidYMid meet" viewBox="0 0 16 16"><g fill="currentColor"><path d="M8.5 1.5A1.5 1.5 0 0 1 10 0h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h6c-.314.418-.5.937-.5 1.5v6h-2a.5.5 0 0 0-.354.854l2.5 2.5a.5.5 0 0 0 .708 0l2.5-2.5A.5.5 0 0 0 10.5 7.5h-2v-6z"/></g></svg>
+
+                                    </a>
+                                </div>
+                                <h6 style="font-size: 12px;">
+                                    {{post.created_at}}
+                                </h6>
+                                <p>
+                                    <a href="/profile/{{post.user}}"><strong>{{post.user}}</strong></a> {{post.caption}}
+                                </p>
+
+                            </div>
+
+                        </div>
+
+    <!-- Comments Section -->
+    <div class="border-t border-gray-200 px-4 py-3">
+        <h3 class="font-semibold mb-3">Comments</h3>
+
+        <!-- Existing Comments -->
+        <div class="space-y-3 mb-4">
+            {% for comment in post.comments.all %}
+                <div class="flex items-start space-x-3">
+                    <a href="/profile/{{ comment.user.username }}">
+                        <img src="{{ comment.user.profile.profileimg.url }}" class="w-8 h-8 rounded-full">
+                    </a>
+                    <div>
+                        <div class="bg-gray-100 rounded-lg px-3 py-2">
+                            <a href="/profile/{{ comment.user.username }}" class="font-semibold text-sm">
+                                {{ comment.user.username }}
+                            </a>
+                            <p class="text-sm" name="comment_txt">{{ comment.comment }}</p>
+                        </div>
+                        {% if comment.user.username == user.username %}
+                        <form method="POST" action="/comment/delete/{{ post.id }}" class="flex items-center space-x-2">
+                            {% csrf_token %}
+                            <input type="hidden" name="comment_txt" value="{{ comment.comment }}">
+                            <button style="font-size : 8px;" type="submit">delete</button>
+                        </form>
+                        {% endif %}
+                        <span class="text-xs text-gray-500">{{ comment.created_at|timesince }} ago</span>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="text-gray-500 text-sm">No comments yet.</p>
+            {% endfor %}
+        </div>
+
+        <!-- Add Comment Form -->
+        <form method="POST" action="/comment/{{ post.id }}" class="flex items-center space-x-2">
+            {% csrf_token %}
+            <input type="text" name="comment_text" maxlength="500" placeholder="Add a comment..." class="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            <button type="submit">
+                send
+                <i class="fa-solid fa-paper-plane-top"></i>
+            </button>
+
+            <p class="text-[10px] text-gray-400 ml-2" style="font-size:8px;">Max 500 letters</p>
+        </form>
+    </div>
+                        {% endfor %}
+
+
+
+
+                    </div>
+
+
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+
+
+ <!-- Scripts -->
+    <script src="{% static 'assets/js/tippy.all.min.js' %}"></script>
+    <script src="{% static 'assets/js/jquery-3.3.1.min.js' %}"></script>
+    <script src="{% static 'assets/js/uikit.js' %}"></script>
+    <script src="{% static 'assets/js/simplebar.js' %}"></script>
+    <script src="{% static 'assets/js/custom.js' %}"></script>
+
+
+    <script src="{% static '../../unpkg.com/ionicons%405.2.3/dist/ionicons.js' %}"></script>
+</body>
+
+
+</html>
