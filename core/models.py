@@ -9,7 +9,12 @@ class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     id_user = models.IntegerField()
     bio = models.TextField(blank=True)
+    email_confirmed = models.BooleanField(default=False)
+    phone_confirmed = models.BooleanField(default=False)
+    phone_number = models.TextField(blank=True)
+    private_public = models.BooleanField(default=False)
     profileimg = models.ImageField(upload_to='profile_images',default='blank-profile-picture.png')
+    profilebackground = models.ImageField(upload_to='profile_images',default='blank-profile-picture.png')
     location = models.CharField(max_length=100, blank=True)
 
     def __str__(self):
@@ -47,6 +52,14 @@ class Comments(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     comment = models.TextField(max_length=500)
+    created_at = models.DateTimeField(default=datetime.now)
+
+    def __str__(self):
+        return self.user.username
+
+class MyFavorite(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
     created_at = models.DateTimeField(default=datetime.now)
 
     def __str__(self):

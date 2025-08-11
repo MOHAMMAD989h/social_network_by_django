@@ -15,11 +15,15 @@
 
 <section>
     <div class="feature-photo">
-        <figure><img src="{% static 'images/resources/timeline-1.jpg' %}" alt=""></figure>
+        <figure  style="width: auto; height: 500px; overflow: hidden;">
+            <img src="{{ user_profile.profilebackground.url }}" alt=""  style="width: 100%; height: 100%; object-fit: fill;">
+        </figure>
 
         <form action="/follow" method="POST">
             {% csrf_token %}
             <div class="add-btn">
+
+
                 <span style="color: white; font-size: 27px; margin-right: 520px;">
                     <b><u><a href="/">Home</a></u></b>
                 </span>
@@ -40,6 +44,9 @@
 
                 <input type="hidden" name="follower" value="{{ user.username }}" />
                 <input type="hidden" name="user" value="{{ user_object.username }}" />
+                {% if user_object.username == user.username %}
+                <a href="/my-favorite">My Favorite</a>
+                {% endif %}
 
                 {% if user_object.username != user.username %}
                     <a href="/message/{{ user_object.username }}">Message</a>
@@ -78,7 +85,8 @@
 
 <section>
     <div class="bio" style="margin: 20px; font-size: 18px;">
-        {{ user_profile.bio }}
+        <h1>Bio</h1>
+        <p style="font-size: 15px"> {{ user_profile.bio }}</p>
     </div>
 </section>
 
@@ -99,6 +107,28 @@
                                     <div>
                                         <a href="/profile/{{ post.user }}" class="font-weight-bold">@{{ post.user }}</a>
                                     </div>
+                                                          <div>
+                            <a href="#"> <i class="icon-feather-more-horizontal text-2xl hover:bg-gray-200 rounded-full p-2 transition -mr-1 "></i> </a>
+                            <div class="bg-white w-56 shadow-md mx-auto p-2 mt-12 rounded-md text-gray-500 hidden text-base border border-gray-100" uk-drop="mode: hover;pos: top-right">
+                                <ul class="space-y-1">
+                                    <li>
+                                        <a href="#" id="shareButton" data-id="{{ post.id }}" onclick="copyPostUrl()" class="flex items-center px-3 py-2 hover:bg-gray-200 hover:text-gray-800 rounded-md">
+                                            <i class="uil-share-alt mr-1"></i> Share
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="my-favorite/add/{{ post.id }}" class="flex items-center px-3 py-2 hover:bg-gray-200 hover:text-gray-800 rounded-md">
+                                            <i class="uil-favorite mr-1"></i> Add favorites
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="#" class="flex items-center px-3 py-2 text-red-500 hover:bg-red-100 hover:text-red-500 rounded-md">
+                                            <i class="uil-trash-alt mr-1"></i> Delete Post
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
                                     {% if post.user == user.username %}
                                     <form action="/delete-post/" method="POST" style="display: inline;">
                                         {% csrf_token %}

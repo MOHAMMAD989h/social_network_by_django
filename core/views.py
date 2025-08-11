@@ -1,15 +1,23 @@
+import http
 import random
-from django.utils import timezone
-from datetime import timedelta
-from itertools import chain
+import re
+from urllib.parse import quote
 
+from django.utils import timezone
+from datetime import timedelta, datetime
+from itertools import chain
+from user_agents import parse
 from django.contrib import messages, auth
 from django.contrib.auth import user_logged_in
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
-from django.shortcuts import render, redirect
+from django.contrib.sessions.models import Session
+from django.shortcuts import render, redirect, get_object_or_404
+from django.core.mail import send_mail
+from django.conf import settings as django_settings
+from django.contrib.auth.hashers import check_password
 
-from core.models import User, Profile, Post, LikePost, FollowersCount,Comments
+from core.models import User, Profile, Post, LikePost, FollowersCount, Comments, MyFavorite
 
 
 @login_required(login_url='signin')
@@ -97,12 +105,26 @@ def signup(request):
         password = request.POST['password']
         password2 = request.POST['password2']
 
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         if password == password2:
             if User.objects.filter(email=email).exists():
                 messages.info(request, 'Email already registered')
                 return redirect('signup')
             elif User.objects.filter(username=username).exists():
                 messages.info(request, 'Username already registered')
+                return redirect('signup')
+            elif User.objects.filter(password=password).exists():
+                messages.info(request, 'Password already registered')
+                return redirect('signup')
+            elif len(username) < 3:
+                messages.info(request, 'Username too short')
+                return redirect('signup')
+            #elif re.match(email_pattern, email) :
+            elif len(email) < 3:
+                messages.info(request, 'Email not valid')
+                return redirect('signup')
+            elif len(password) < 8:
+                messages.info(request, 'Password must be at least 8 characters')
                 return redirect('signup')
             else:
                 user = User.objects.create_user(username=username, email=email, password=password)
@@ -135,6 +157,16 @@ def signin(request):
 
         if user is not None:
             auth.login(request, user)
+
+            ua_string = request.META.get('HTTP_USER_AGENT', '')
+            user_agent = parse(ua_string)
+
+            request.session['user_agent'] = {
+                'os_family': user_agent.os.family,
+                'browser_family': user_agent.browser.family,
+                'device_type': user_agent.device.family
+            }
+
             return redirect('/')
         else:
             messages.info(request, 'user is not valid')
@@ -151,32 +183,71 @@ def logout(request):
 @login_required(login_url='signin')
 def settings(request):
     user_profile = Profile.objects.get(user=request.user)
+    user_sessions = []
+
+    all_sessions = Session.objects.filter(expire_date__gte=timezone.now())
+    for session in all_sessions:
+        session_data = session.get_decoded()
+        if session_data.get('_auth_user_id') == str(request.user.id):
+            ua_info = session_data.get('user_agent', {})
+            session.ua_info = ua_info
+            user_sessions.append(session)
 
     if request.method == 'POST':
 
         if request.FILES.get('image') is None:
-            image = user_profile.profileimg
-            bio = request.POST['bio']
-            location = request.POST['location']
+            if request.FILES.get('back_image') is None:
+                image = user_profile.profileimg
+                bio = request.POST['bio']
+                location = request.POST['location']
+                back_image = user_profile.profilebackground
 
-            user_profile.profileimg = image
-            user_profile.bio = bio
-            user_profile.location = location
+                user_profile.profileimg = image
+                user_profile.bio = bio
+                user_profile.location = location
+                user_profile.profilebackground = back_image
 
-            user_profile.save()
+                user_profile.save()
+            if request.FILES.get('back_image') is not None:
+                image = user_profile.profileimg
+                bio = request.POST['bio']
+                location = request.POST['location']
+                back_image = request.FILES['back_image']
+
+                user_profile.profileimg = image
+                user_profile.bio = bio
+                user_profile.location = location
+                user_profile.profilebackground = back_image
+
+                user_profile.save()
+
 
         if request.FILES.get('image') is not None:
-            image = request.FILES.get('image')
-            bio = request.POST['bio']
-            location = request.POST['location']
+            if request.FILES.get('back_image') is None:
+                image = request.FILES.get('image')
+                bio = request.POST['bio']
+                location = request.POST['location']
+                back_image = user_profile.profilebackground
 
-            user_profile.profileimg = image
-            user_profile.bio = bio
-            user_profile.location = location
+                user_profile.profileimg = image
+                user_profile.bio = bio
+                user_profile.location = location
+                user_profile.profilebackground = back_image
 
-            user_profile.save()
+            if request.FILES.get('back_image') is not None:
+                image = request.FILES.get('image')
+                bio = request.POST['bio']
+                location = request.POST['location']
+                back_image = request.FILES['back_image']
+
+                user_profile.profileimg = image
+                user_profile.bio = bio
+                user_profile.location = location
+                user_profile.profilebackground = back_image
+
+                user_profile.save()
         return redirect('settings')
-    return render(request, 'setting.html',{'user_profile':user_profile})
+    return render(request, 'setting.html',{'user_profile':user_profile,'sessions': user_sessions})
 
 @login_required(login_url='signin')
 def upload(request):
@@ -214,7 +285,7 @@ def like_post(request):
 
         post.no_of_likes -= 1
         post.save()
-        
+
         return redirect(request.META['HTTP_REFERER'])
 
 @login_required(login_url='signin')
@@ -345,3 +416,212 @@ def commentDelete(request, post_id):
             return redirect('/')
 
     return redirect('/')
+
+@login_required
+def post(request,post_id):
+    if not request.user.is_authenticated:
+        return redirect('login')
+    try:
+        user_object = User.objects.get(username=request.user.username)
+        user_profile = Profile.objects.get(user=user_object)
+        post = Post.objects.filter(id=post_id).prefetch_related('comments__user__profile')
+        return render(request, 'post.html', {'user_profile': user_profile,'posts': post})
+    except Post.DoesNotExist:
+        return redirect('/')
+
+@login_required
+def myFavorite(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+    try:
+        user_object = User.objects.get(username=request.user.username)
+        user_profile = Profile.objects.get(user=user_object)
+        posts = Post.objects.filter(myfavorite__user=request.user)
+        print(posts)
+        return render(request, 'my_favorite.html', {'user_profile': user_profile, 'posts': posts})
+    except Post.DoesNotExist:
+        return redirect('/')
+
+@login_required
+def myFavoriteAdd(request,post_id):
+    if not request.user.is_authenticated:
+        return redirect('login')
+
+    post = get_object_or_404(Post, id=post_id)
+
+    is_favorite = MyFavorite.objects.filter(user=request.user, post=post).exists()
+
+    if is_favorite:
+        MyFavorite.objects.filter(user=request.user, post=post).delete()
+    else:
+        MyFavorite.objects.create(user=request.user, post=post)
+
+    return redirect(request.META.get('HTTP_REFERER', '/'))
+
+@login_required
+def comfirmEmail(request):
+    verification_code = ''.join(random.choices('0123456789', k=6))
+
+    expiry_time = (timezone.now() + timedelta(minutes=2)).isoformat()
+
+    request.session['verification_code'] = {
+        'code': verification_code,
+        'expire_at': expiry_time,
+    }
+    subject = 'کد تایید حساب کاربری'
+    message = f'کد تایید شما برای ورود به سایت: {verification_code}'
+    email_from = django_settings.EMAIL_HOST_USER
+    recipient_list = [request.user.email, ]
+
+    try:
+        send_mail(subject, message, email_from, recipient_list)
+        messages.error(request, 'ایمیل با موفقیت ارسال شد.')
+        print("ایمیل با موفقیت ارسال شد.")
+        return render(request,'verify_email.html')
+    except Exception as e:
+        print(f"خطا در ارسال ایمیل: {e}")
+        messages.error(request, 'خطا در ارسال ایمیل')
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+
+@login_required
+def verifyEmail(request):
+    if request.method == 'POST':
+        user_code = request.POST.get('verification_code')
+        stored_code_data = request.session.get('verification_code')
+
+        if stored_code_data:
+            stored_expiry_time = datetime.fromisoformat(stored_code_data['expire_at'])
+            if timezone.now() > stored_expiry_time:
+                del request.session['verification_code']
+                messages.error(request, 'کد منقضی شده است. لطفاً دوباره درخواست دهید.')
+                return redirect(request.META.get('HTTP_REFERER', '/'))
+
+            elif user_code == stored_code_data['code']:
+                try:
+                    user_profile = Profile.objects.get(user=request.user)
+                    user_profile.email_confirmed = True
+                    user_profile.save()
+
+                    del request.session['verification_code']
+                    messages.success(request, 'ایمیل شما با موفقیت تایید شد!')
+                except Profile.DoesNotExist:
+                    messages.error(request, 'پروفایل کاربر یافت نشد.')
+
+                return redirect('settings')
+            else:
+                messages.error(request, 'کد وارد شده صحیح نیست. لطفاً دوباره تلاش کنید.')
+                return render(request, 'verify_email.html')
+        else:
+            messages.error(request, 'خطا: کدی برای تایید وجود ندارد.')
+
+    return render(request,'verify_email.html')
+
+@login_required
+def verifyPhone(request):
+    if request.method == 'POST':
+        user_phone = request.POST.get('verification_phone')
+
+        if len(user_phone) < 10:
+            messages.error(request, 'شماره تلفن نامعتبر است.')
+            return redirect(request.META.get('HTTP_REFERER', '/'))
+
+        verification_code = ''.join(random.choices('0123456789', k=6))
+
+        expiry_time = (timezone.now() + timedelta(minutes=2)).isoformat()
+
+        request.session['verification_code'] = {
+                'code': verification_code,
+                'expire_at': expiry_time,
+                'phone': user_phone,
+        }
+        message = f'کد تایید شما برای ورود به سایت: {verification_code}'
+        encoded_message = quote(message)
+        conn = http.client.HTTPSConnection("api.sms.ir")
+        payload = ''
+        headers = {
+            'Accept': 'text/plain'
+        }
+        conn.request(
+            "GET",
+            f"/v1/send?username=9039078303&password=NKHkqSgfOEKZ2QdA7ecPoDdUBeZRny2nVl5ASphMpNxI18YR&mobile={user_phone}&line=30002108002701&text={encoded_message}",
+            payload,
+            headers
+        )
+        res = conn.getresponse()
+        data = res.read()
+        print(data.decode("utf-8"))
+
+    return render(request,'verify_phone.html')
+
+@login_required
+def confirmPhone(request):
+    try:
+        user_code = request.POST.get('verification_code')
+        user_phone = request.session.get('verification_code')
+        phone_number = user_phone['phone']
+        stored_code_data = request.session.get('verification_code')
+        if stored_code_data:
+            stored_expiry_time = datetime.fromisoformat(stored_code_data['expire_at'])
+            if timezone.now() > stored_expiry_time:
+                del request.session['verification_code']
+                messages.error(request, 'کد منقضی شده است. لطفاً دوباره درخواست دهید.')
+                return redirect(request.META.get('HTTP_REFERER', '/'))
+
+            elif user_code == stored_code_data['code']:
+                user_profile = Profile.objects.get(user=request.user)
+                user_profile.phone_confirmed = True
+                user_profile.phone_number = phone_number
+                user_profile.save()
+
+                del request.session['verification_code']
+                messages.success(request, 'شماره شما با موفقیت تایید شد!')
+
+                return redirect('settings')
+            else:
+                messages.error(request, 'کد وارد شده صحیح نیست. لطفاً دوباره تلاش کنید.')
+                return render(request, 'verify_email.html')
+        else:
+            messages.error(request, 'خطا: کدی برای تایید وجود ندارد.')
+    except Profile.DoesNotExist:
+        messages.error(request, 'پروفایل کاربر یافت نشد.')
+
+@login_required
+def changePassword(request):
+    if request.method == 'POST':
+        try:
+            old_password = request.POST.get('old_password')
+            old_password_1 = request.POST.get('old_password_1')
+            new_password = request.POST.get('new_password')
+            new_password_1 = request.POST.get('new_password_1')
+
+            user = User.objects.get(username=request.user.username)
+
+            if old_password != old_password_1 or new_password != new_password_1:
+                messages.error(request, 'passwords not match')
+                return render(request, 'change_password.html')
+            elif not check_password(old_password, user.password):
+                messages.error(request, 'old passwords not match')
+                return render(request, 'change_password.html')
+            elif len(new_password) < 8:
+                messages.error(request, 'new password is too short')
+                return render(request, 'change_password.html')
+            else:
+                user.set_password = new_password
+                user.save()
+                messages.success(request, 'changed password')
+                return redirect(request.META.get('HTTP_REFERER', '/'))
+        except User.DoesNotExist:
+            messages.error(request, 'ERROR')
+            return redirect(request.META.get('HTTP_REFERER', '/'))
+    return render(request, 'change_password.html')
+
+@login_required
+def end_session(request, session_key):
+    if request.method == 'POST':
+        session = get_object_or_404(Session, session_key=session_key)
+
+        if session.get_decoded().get('_auth_user_id') == str(request.user.id):
+            session.delete()
+
+    return redirect('/')
+

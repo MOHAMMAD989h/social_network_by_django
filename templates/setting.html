@@ -1,6 +1,4 @@
 {% load static %}
-
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -13,6 +11,8 @@
     <link rel="stylesheet" href="{% static 'assets/css/uikit.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
     <link rel="stylesheet" href="{% static 'assets/css/tailwind.css' %}">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/css/select2.min.css" rel="stylesheet" />
+
 
 </head>
 
@@ -26,15 +26,6 @@
             <div class="container m-auto"> 
 
                 <h1 class="text-2xl leading-none text-gray-900 tracking-tight mt-3"><a href="/">Home</a> / Account Setting for <b>{{user.username}}</b> </h1>
-               <ul class="mt-5 -mr-3 flex-nowrap lg:overflow-hidden overflow-x-scroll uk-tab">
-                    <li class="uk-active"><a href="#">General</a></li>
-                    <li><a href="#">Profile</a></li>
-                    <li><a href="#">Privacy</a></li>
-                    <li><a href="#">Notification</a></li>
-                    <li><a href="#">Social links</a></li>
-                    <li><a href="#">Billing</a></li>
-                    <li><a href="#">Security</a></li>
-                </ul>
                 <br>
                 <hr>
                 <div class="grid lg:grid-cols-3 mt-12 gap-8">
@@ -50,19 +41,36 @@
                            
                            
                             <div class="col-span-2">
-                                <label for=""> Profile Image</label>
+                                <label > Profile Image</label>
                                 <img width="100" height="100" src="{{user_profile.profileimg.url}}" />
                                 <input type="file" name="image" value="" class="shadow-none bg-gray-100">
+                            </div>
+                            <div class="col-span-2">
+                                <label > Background Image</label>
+                                <img width="100" height="100" src="{{user_profile.profilebackground.url}}" />
+                                <input type="file" name="back_image" value="" class="shadow-none bg-gray-100">
                             </div>
                             <div class="col-span-2">
                                 <label for="about">Bio</label>  
                                 <textarea id="about" name="bio" rows="3"  class="shadow-none bg-gray-100">{{user_profile.bio}}</textarea>
                             </div> 
-                            <div class="col-span-2">
-                                <label for=""> Location</label>
-                                <input type="text" name="location" value="{{user_profile.location}}" class="shadow-none bg-gray-100">
+                           <div class="col-span-2">
+                                <label for="location">موقعیت</label>
+                                <input value="{{user_profile.location}}" list="cityList" name="location" id="location" class="shadow-none bg-gray-100">
+                                <datalist id="cityList">
+                                <option value="New York">
+                                <option value="London">
+                                <option value="Paris">
+                                <option value="Tokyo">
+                                <option value="Tehran">
+                                <option value="Tabriz">
+                                <option value="Shiraz">
+                                <option value="Isfahan">
+                                <option value="Mashhad">
+                                <option value="Karaj">
+                                </datalist>
                             </div>
-                            
+
                        </div> 
     
                        <div class="bg-gray-10 p-6 pt-0 flex justify-end space-x-3">
@@ -73,62 +81,61 @@
     
                     </div>
 
-                    <!-- <div>
-                        <h3 class="text-xl mb-2"> Privacy</h3>
+                 <div>
+                        <h3 class="text-xl mb-2"> Privacy and Security</h3>
                         <p> </p>
                     </div>
                     <div class="bg-white rounded-md lg:shadow-lg shadow lg:p-6 p-4 col-span-2">
+                        <div>
+                            <div>
+                                {% if user_profile.email_confirmed  %}
+                                <a> Confirmed Email </a>
+                                {% else %}
+                                <a href="/confirm-email"> Confirm Email </a>
+                                {% endif %}
+                            </div>
+                            <div>
+                                {% if user_profile.phone_confirmed  %}
+                                <a> Confirmed Phone Number </a>
+                                {% else %}
+                                <a href="/verify-phone"> Confirm Phone Number </a>
+                                {% endif %}
+                            </div>
+                            <div>
+                            <a href="/change-password"> Change Password </a>
+                            </div>
 
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <h4> Who can follow me ?</h4>
-                                <div>  </div>
-                            </div>
-                            <div class="switches-list -mt-8 is-large">
-                                <div class="switch-container">
-                                    <label class="switch"><input type="checkbox"><span class="switch-button"></span> </label>
-                                </div>
-                            </div>
                         </div>
-                        <hr>
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <h4> Show my activities ?</h4>
-                                <div>  </div>
-                            </div>
-                            <div class="switches-list -mt-8 is-large">
-                                <div class="switch-container">
-                                    <label class="switch"><input type="checkbox" checked><span class="switch-button"></span> </label>
-                                </div>
-                            </div>
+
+                        <div>
+                           <table class="table-sessions">
+                                <thead>
+                                <tr>
+                                    <th>سیستم عامل</th>
+                                    <th>مرورگر</th>
+                                    <th>دستگاه</th>
+                                    <th>تاریخ انقضا</th>
+                                    <th>اقدام</th>
+                                </tr>
+                            </thead>
+                        <tbody>
+                        {% for session in sessions %}
+                        <tr>
+                            <td>{{ session.ua_info.os_family }}</td>
+                            <td>{{ session.ua_info.browser_family }}</td>
+                            <td>{{ session.ua_info.device_type }}</td>
+                            <td>{{ session.expire_date }}</td>
+                            <td>
+                            <form action="{% url 'end_session' session.session_key %}" method="post">
+                                {% csrf_token %}
+                                <button type="submit">خروج</button>
+                            </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                           </table>
                         </div>
-                        <hr>
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <h4> Search engines?</h4>
-                                <div>  </div>
-                            </div>
-                            <div class="switches-list -mt-8 is-large">
-                                <div class="switch-container">
-                                    <label class="switch"><input type="checkbox"><span class="switch-button"></span> </label>
-                                </div>
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <h4> Allow Commenting?</h4>
-                                <div>  </div>
-                            </div>
-                            <div class="switches-list -mt-8 is-large">
-                                <div class="switch-container">
-                                    <label class="switch"><input type="checkbox"><span class="switch-button"></span> </label>
-                                </div>
-                            </div>
-                        </div>
-                    </div> -->
-    
                     </div>
                     <br>
 
@@ -151,8 +158,9 @@
     <script src="{% static 'assets/js/simplebar.js' %}"></script>
     <script src="{% static 'assets/js/custom.js' %}"></script>
 
+<script type="module" src="https://unpkg.com/ionicons@5.2.3/dist/ionicons/ionicons.esm.js"></script>
+<script nomodule src="https://unpkg.com/ionicons@5.2.3/dist/ionicons/ionicons.js"></script>
 
-    <script src="{% static '../../unpkg.com/ionicons%405.2.3/dist/ionicons.js' %}"></script>
 </body>
 
 </html>
