@@ -104,6 +104,16 @@
                             <div>
                             <a href="/change-password"> Change Password </a>
                             </div>
+                            <div>
+                            <a href="/forgot-password"> Forgot Password </a>
+                            </div>
+                            <div>
+                                {% if user_profile.private_public %}
+                                <a href="/private-public"> Change to Public </a>
+                                {% else %}
+                                <a href="/private-public"> Change to Private </a>
+                                {% endif %}
+                            </div>
 
                         </div>
 

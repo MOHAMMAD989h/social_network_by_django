@@ -550,8 +550,9 @@ def verifyPhone(request):
         res = conn.getresponse()
         data = res.read()
         print(data.decode("utf-8"))
-
-    return render(request,'verify_phone.html')
+        return render(request,'confirm_phone.html')
+    else:
+        return render(request,'verify_phone.html')
 
 @login_required
 def confirmPhone(request):
@@ -606,7 +607,7 @@ def changePassword(request):
                 messages.error(request, 'new password is too short')
                 return render(request, 'change_password.html')
             else:
-                user.set_password = new_password
+                user.set_password(new_password)
                 user.save()
                 messages.success(request, 'changed password')
                 return redirect(request.META.get('HTTP_REFERER', '/'))
@@ -625,3 +626,76 @@ def end_session(request, session_key):
 
     return redirect('/')
 
+@login_required
+def forgotPassword(request):
+    if request.method == 'POST':
+        user_code = request.POST.get('code')
+        stored_code_data = request.session.get('verification_password_code')
+        new_password = request.POST.get('new_password')
+        new_password_1 = request.POST.get('new_password_1')
+
+        if stored_code_data:
+            stored_expiry_time = datetime.fromisoformat(stored_code_data['expire_at'])
+            if timezone.now() > stored_expiry_time:
+                del request.session['verification_password_code']
+                messages.error(request, 'کد منقضی شده است. لطفاً دوباره درخواست دهید.')
+                return redirect(request.META.get('HTTP_REFERER', '/'))
+
+            elif user_code != stored_code_data['code']:
+                messages.error(request, 'code is not valid')
+                return render(request, 'forgot_password.html')
+            elif new_password != new_password_1:
+                messages.error(request, 'passwords not match')
+                return render(request, 'forgot_password.html')
+            elif len(new_password) < 8:
+                messages.error(request, 'new password is too short')
+                return render(request, 'forgot_password.html')
+            else:
+                try:
+                    user = User.objects.get(username=request.user.username)
+                    user.set_password(new_password)
+                    user.save()
+                    del request.session['verification_password_code']
+                    messages.success(request, 'changed password')
+                except Profile.DoesNotExist:
+                    messages.error(request, 'پروفایل کاربر یافت نشد.')
+
+                return redirect('settings')
+        else:
+            messages.error(request, 'کد وارد شده صحیح نیست. لطفاً دوباره تلاش کنید.')
+            return render(request, 'verify_email.html')
+
+    else:
+        verification_code = ''.join(random.choices('0123456789', k=6))
+
+        expiry_time = (timezone.now() + timedelta(minutes=2)).isoformat()
+
+        request.session['verification_password_code'] = {
+            'code': verification_code,
+            'expire_at': expiry_time,
+        }
+        subject = 'کد تایید تغییر رمز'
+        message = f'کد تایید شما : {verification_code}'
+        email_from = django_settings.EMAIL_HOST_USER
+        recipient_list = [request.user.email, ]
+
+        try:
+            send_mail(subject, message, email_from, recipient_list)
+            messages.error(request, 'ایمیل با موفقیت ارسال شد.')
+            print("ایمیل با موفقیت ارسال شد.")
+            return render(request, 'forgot_password.html')
+        except Exception as e:
+            print(f"خطا در ارسال ایمیل: {e}")
+            messages.error(request, 'خطا در ارسال ایمیل')
+            return redirect(request.META.get('HTTP_REFERER', '/'))
+
+@login_required
+def privatePublic(request):
+    user_profile = Profile.objects.get(user=request.user)
+    if user_profile.private_public:
+        user_profile.private_public = False
+        user_profile.save()
+    else:
+        user_profile.private_public = True
+        user_profile.save()
+    return redirect(request.META.get('HTTP_REFERER', '/'))

@@ -56,10 +56,11 @@
                 </div>
 
 
-                <form id="phone_form" action="/verify-phone" method="POST">
+                <form  id="phone_confirm_form" action="/confirm-phone" method="POST">
                     {% csrf_token %}
-                    <input  id="verification_phone" type="text" name="verification_phone" placeholder="شماره  را وارد کنید" class="bg-gray-200 mb-2 shadow-none dark:bg-gray-800" style="border: 1px solid #d3d5d8 !important;">
-                    <button  id="submit_phone" type="submit" class="bg-gradient-to-br from-pink-500 py-3 rounded-md text-white text-xl to-red-400 w-full">Send</button>
+                    <input  id="verification_code" type="text" name="verification_code" placeholder="کد  را وارد کنید" class="bg-gray-200 mb-2 shadow-none dark:bg-gray-800" style="border: 1px solid #d3d5d8 !important;">
+                    <a  id="send_again" href="/verify-phone" type="submit">enter again</a>
+                    <button id="submit_code"  type="submit" class="bg-gradient-to-br from-pink-500 py-3 rounded-md text-white text-xl to-red-400 w-full">Submit</button>
                 </form>
 
 

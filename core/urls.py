@@ -26,4 +26,6 @@ urlpatterns = [
     path('confirm-phone', views.confirmPhone, name='confirm_phone'),
     path('change-password', views.changePassword, name='change_password'),
     path('end-session/<str:session_key>/', views.end_session, name='end_session'),
+    path('forgot-password', views.forgotPassword, name='forgot_password'),
+    path('private-public', views.privatePublic, name='private_public'),
 ]

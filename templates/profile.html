@@ -100,6 +100,7 @@
                             <aside class="sidebar static"></aside>
                         </div>
 
+                        {% if not user_profile.private_public or user_object.username == user.username %}
                         <div class="col-lg-6">
                             {% for post in user_posts reversed %}
                             <div class="bg-white shadow rounded-md mb-5 p-3">
@@ -238,7 +239,11 @@
     </div>
                             {% endfor %}
                         </div>
-
+                        {% else %}
+                        <div>
+                            <h1>This Account is Private</h1>
+                        </div>
+                        {% endif %}
                         <div class="col-lg-3">
                             <aside class="sidebar static"></aside>
                         </div>

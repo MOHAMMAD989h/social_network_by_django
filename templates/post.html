@@ -57,7 +57,7 @@
                     </div>
                 </div>
             </header>
-
+            {% if  user_profile.private_public %}
             <div class="container m-auto">
 
                 <div class="lg:grid lg:grid-cols-12 lg:gap-10">
@@ -189,6 +189,10 @@
                     {% endfor %}
         </div>
         </div>
+            {% else %}
+            <div><h1>This Post is Private</h1></div>
+            {% endif %}
+
     </div>
 </div>
 
