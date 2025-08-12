@@ -38,9 +38,9 @@
                 {% endif %}
 
                 <span style="color: white; font-size: 27px;">
-                    <b>{{ user_followers }} {{ user_followers|pluralize:"follower,followers" }}</b>
+                    <a href="{% url 'followers' pk=user_object.username %}">{{ user_followers }} {{ user_followers|pluralize:"follower,followers" }}</a>
                 </span>
-                <span style="color: white; font-size: 27px;"><b>{{ user_following }} following</b></span>
+                <span style="color: white; font-size: 27px;"><a href="{% url 'following' pk=user_object.username %}">{{ user_following }} following</a></span>
 
                 <input type="hidden" name="follower" value="{{ user.username }}" />
                 <input type="hidden" name="user" value="{{ user_object.username }}" />
@@ -99,8 +99,7 @@
                         <div class="col-lg-3">
                             <aside class="sidebar static"></aside>
                         </div>
-
-                        {% if not user_profile.private_public or user_object.username == user.username %}
+                        {% if private_public or user_object.username == user.username %}
                         <div class="col-lg-6">
                             {% for post in user_posts reversed %}
                             <div class="bg-white shadow rounded-md mb-5 p-3">
@@ -240,9 +239,7 @@
                             {% endfor %}
                         </div>
                         {% else %}
-                        <div>
-                            <h1>This Account is Private</h1>
-                        </div>
+                        <div><h1>This Account is Private</h1></div>
                         {% endif %}
                         <div class="col-lg-3">
                             <aside class="sidebar static"></aside>

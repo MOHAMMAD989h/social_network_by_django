@@ -29,10 +29,10 @@
                             </a>
                         </div>
 
-                            
+
                                 <input type="text" name="username" placeholder="Search for username..">&nbsp; &nbsp;
                                 <button type="submit"><i class="fa fa-search fa-1x"></i></button>
-                            
+
 
 
                     </div>
@@ -63,7 +63,7 @@
             </form>
 
             <div style="margin-left: 250px; margin-right: 250px;">
-                
+
                 <style>
                 body{margin-top:20px;
                 background-color: #eee;
@@ -171,22 +171,22 @@
                 <div class="container">
                 <div class="row ng-scope">
                     <div class="col-md-3 col-md-push-9">
-                        <h4>Results For <span class="fw-semi-bold"><b>{{username}}</b></span></h4>
+                        <h4>Results For Followers <span class="fw-semi-bold"><b>{{username}}</b></span></h4>
                         <br>
 
                     </div>
                     <div class="col-md-9 col-md-pull-3">
 
-                        {% for users in username_profile_list %}
+                        {% for user_profile in profiles %}
                         <section class="search-result-item">
-                            <a class="image-link" href="/profile/{{users.user}}"><img class="image" src="{{users.profileimg.url}}">
+                            <a class="image-link" href="/profile/{{user_profile.user}}"><img class="image" src="{{user_profile.profileimg.url}}">
                             </a>
                             <div class="search-result-item-body">
                                 <div class="row">
                                     <div class="col-sm-9">
-                                        <h4 class="search-result-item-heading"><a href="/profile/{{users.user}}"><b>@{{users.user}}</b></a></h4>
-                                        <p class="info">{{users.location}}</p>
-                                        <p class="description">{{users.bio}}</p>
+                                        <h4 class="search-result-item-heading"><a href="/profile/{{user_profile.user}}"><b>@{{user_profile.user}}</b></a></h4>
+                                        <p class="info">{{user_profile.location}}</p>
+                                        <p class="description">{{user_profile.bio}}</p>
                                     </div>
 
                                 </div>
@@ -212,7 +212,7 @@
 
  <!-- Scripts
     ================================================== -->
-    <script src="{% static 'assets/js/tippy.all.min.js' %}"></script>  
+    <script src="{% static 'assets/js/tippy.all.min.js' %}"></script>
     <script src="{% static 'assets/js/jquery-3.3.1.min.js' %}"></script>
     <script src="{% static 'assets/js/uikit.js' %}"></script>
     <script src="{% static 'assets/js/simplebar.js' %}"></script>

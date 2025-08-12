@@ -112,6 +112,26 @@
                                 class="-mt-5 -mx-5 bg-gradient-to-t from-gray-100 to-gray-50 border-b font-bold px-6 py-3">
                                 Notification </h4>
                                 <ul class="dropdown_scrollbar" data-simplebar>
+                                 {% for notification in request_notifications %}
+                                <li>
+                                    <a href="/profile/{{ notification.username }}">
+                                <div class="drop_avatar">
+                                <img src="{{ notification.profileimg }}">
+                                </div>
+                                        <div class="drop_content">
+                                    <p>
+                                        <strong class="text-link">{{ notification.username }}</strong>
+                                        <span>  Request to Following you </span>
+                                    </p>
+                                    <form action="{% url 'accept-request' pk=notification.username %}" method="post">
+                                            {% csrf_token %}
+                                        <button class="bg-gradient-to-br from-pink-500 to-red-400 w-[50px] h-[40px] rounded-md text-white text-sm">Accept Request</button>
+                                    </form>
+                                    <span class="time-ago">{{ notification.created_at }}</span>
+                                        </div>
+                                    </a>
+                                </li>
+                            {% endfor %}
                                 {% for notification in following_notifications %}
                                 <li>
                                     <a href="/profile/{{ notification.username }}">
@@ -190,9 +210,12 @@
                                         </a>
                                     </li>
                                     <li>
-                                        <a href="#" class="flex items-center px-3 py-2 text-red-500 hover:bg-red-100 hover:text-red-500 rounded-md">
-                                            <i class="uil-trash-alt mr-1"></i> Delete Post
-                                        </a>
+                                        <form method="POST" action="/post/{{ post.id }}" class="flex items-center space-x-2">
+                                                {% csrf_token %}
+                                                <button type="submit" class="w-full text-left flex items-center px-3 py-2 hover:bg-gray-200 hover:text-gray-800 rounded-md">
+                                                <i class="uil uil-eye mr-2"></i> See Post
+                                            </button>
+                                        </form>
                                     </li>
                                 </ul>
                             </div>
@@ -286,10 +309,6 @@
                     </form>
                     </div>
                         <div>
-                            <form method="POST" action="/post/{{ post.id }}" class="flex items-center space-x-2">
-                                {% csrf_token %}
-                                <button type="submit">see post</button>
-                            </form>
                         </div>
                         </div>
                     {% endfor %}

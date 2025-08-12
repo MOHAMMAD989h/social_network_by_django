@@ -6,6 +6,8 @@ from urllib.parse import quote
 from django.utils import timezone
 from datetime import timedelta, datetime
 from itertools import chain
+
+from django.views.decorators.http import require_POST
 from user_agents import parse
 from django.contrib import messages, auth
 from django.contrib.auth import user_logged_in
@@ -17,7 +19,7 @@ from django.core.mail import send_mail
 from django.conf import settings as django_settings
 from django.contrib.auth.hashers import check_password
 
-from core.models import User, Profile, Post, LikePost, FollowersCount, Comments, MyFavorite
+from core.models import User, Profile, Post, LikePost, FollowersCount, Comments, MyFavorite, RequestFollow
 
 
 @login_required(login_url='signin')
@@ -60,9 +62,34 @@ def index(request):
                 time_ago_str = f"{hours} ساعت و {minutes} دقیقه پیش"
             else:
                 time_ago_str = f"{minutes} دقیقه پیش"
+            if hours < 24:
+                following_with_profiles.append({
+                    'username': follow.user,
+                    'profileimg': profile.profileimg.url,
+                    'created_at': time_ago_str,
+                })
+        except Profile.DoesNotExist:
+            continue
 
-            following_with_profiles.append({
-                'username': follow.user,
+    user_requests = RequestFollow.objects.filter(user=request.user)
+    request_with_profiles = []
+    for req in user_requests:
+        try:
+            profile = Profile.objects.get(user__username=req.follower)
+
+            time_diff = timezone.now() - req.created_at
+
+            total_minutes = int(time_diff.total_seconds() // 60)
+            hours = total_minutes // 60
+            minutes = total_minutes % 60
+
+            if hours > 0:
+                time_ago_str = f"{hours} ساعت و {minutes} دقیقه پیش"
+            else:
+                time_ago_str = f"{minutes} دقیقه پیش"
+
+            request_with_profiles.append({
+                'username': req.follower,
                 'profileimg': profile.profileimg.url,
                 'created_at': time_ago_str,
             })
@@ -95,7 +122,7 @@ def index(request):
 
     suggestions_username_profile_list = list(chain(*username_profile_list))
 
-    return render(request, 'index.html', {'user_profile': user_profile,'following_notifications':following_with_profiles,'posts': feed_list,'suggestions_username_profile_list':suggestions_username_profile_list[:4]})
+    return render(request, 'index.html', {'user_profile': user_profile,'following_notifications':following_with_profiles,'request_notifications':request_with_profiles,'posts': feed_list,'suggestions_username_profile_list':suggestions_username_profile_list[:4]})
 
 
 def signup(request):
@@ -301,11 +328,19 @@ def profile(request, pk):
 
     if FollowersCount.objects.filter(follower=follower, user=user).first():
         button_text = 'Unfollow'
+    elif RequestFollow.objects.filter(follower=follower, user=user).first():
+        button_text = 'SendRequest'
     else:
         button_text = 'Follow'
 
     user_followers = len(FollowersCount.objects.filter(user=pk))
     user_following = len(FollowersCount.objects.filter(follower=pk))
+    user_follow = FollowersCount.objects.filter(user=user_object, follower=request.user.username)
+
+    private_public = True
+
+    if  user_profile.private_public or user_follow is None:
+        private_public = False
 
     context = {
         'user_object': user_object,
@@ -315,6 +350,7 @@ def profile(request, pk):
         'button_text': button_text,
         'user_followers': user_followers,
         'user_following': user_following,
+        'private_public': private_public,
     }
     return render(request,'profile.html', context)
 
@@ -323,15 +359,26 @@ def follow(request):
     if request.method == 'POST':
         follower = request.POST['follower']
         user = request.POST['user']
+        user_object = User.objects.get(username=user)
 
-        if FollowersCount.objects.filter(user=user, follower=follower).first():
-            delete_follower = FollowersCount.objects.get(user=user, follower=follower)
-            delete_follower.delete()
-            return redirect('/profile/'+ user)
+        if Profile.objects.get(user=user_object).private_public:
+            if RequestFollow.objects.filter(user=user, follower=follower).first():
+                delete_request = RequestFollow.objects.get(user=user, follower=follower)
+                delete_request.delete()
+                return redirect('/profile/'+ user)
+            else:
+                new_request = RequestFollow.objects.create(user=user, follower=follower)
+                new_request.save()
+                return redirect('/profile/' + user)
         else:
-            new_follower = FollowersCount.objects.create(user=user, follower=follower)
-            new_follower.save()
-            return redirect('/profile/'+ user)
+            if FollowersCount.objects.filter(user=user, follower=follower).first():
+                delete_follower = FollowersCount.objects.get(user=user, follower=follower)
+                delete_follower.delete()
+                return redirect('/profile/'+ user)
+            else:
+                new_follower = FollowersCount.objects.create(user=user, follower=follower)
+                new_follower.save()
+                return redirect('/profile/'+ user)
     else:
         return redirect('/')
 
@@ -362,7 +409,7 @@ def search(request):
 
     return render(request, 'search.html',{'user_profile': user_profile,'username_profile_list':username_profile_list})
 
-@login_required
+@login_required(login_url='signin')
 def delete_post(request):
     if request.method == 'POST':
         post_id = request.POST.get('post_id')
@@ -371,14 +418,27 @@ def delete_post(request):
             post.delete()
     return redirect(request.META.get('HTTP_REFERER', '/'))
 
-@login_required
+@login_required(login_url='signin')
 def explore(request):
     user_object = User.objects.get(username=request.user.username)
     user_profile = Profile.objects.get(user=user_object)
-    posts = Post.objects.all().order_by('-created_at')
+
+    user_profile_post = Profile.objects.filter(private_public=False)
+    posts = []
+
+    for user in user_profile_post:
+        if not user.private_public:
+            posts.append(Post.objects.filter(user=user.user))
+
+
+    user_following = FollowersCount.objects.filter(follower=request.user.username)
+    for user in user_following:
+        posts.append(Post.objects.filter(user=user.user))
+
+    posts = list(set(chain(*posts)))
     return render(request, 'explore.html', {'user_profile': user_profile,'posts': posts})
 
-@login_required
+@login_required(login_url='signin')
 def comment(request, post_id):
     if request.method == 'POST':
         if not request.user.is_authenticated:
@@ -400,7 +460,7 @@ def comment(request, post_id):
 
     return redirect('/')
 
-@login_required
+@login_required(login_url='signin')
 def commentDelete(request, post_id):
     if request.method == 'POST':
         if not request.user.is_authenticated:
@@ -417,19 +477,22 @@ def commentDelete(request, post_id):
 
     return redirect('/')
 
-@login_required
+@login_required(login_url='signin')
 def post(request,post_id):
     if not request.user.is_authenticated:
         return redirect('login')
     try:
         user_object = User.objects.get(username=request.user.username)
         user_profile = Profile.objects.get(user=user_object)
-        post = Post.objects.filter(id=post_id).prefetch_related('comments__user__profile')
+        user_follow = FollowersCount.objects.filter(user=user_object, follower=request.user.username)
+        post = ''
+        if user_profile.private_public or user_follow is not None:
+            post = Post.objects.filter(id=post_id).prefetch_related('comments__user__profile')
         return render(request, 'post.html', {'user_profile': user_profile,'posts': post})
     except Post.DoesNotExist:
         return redirect('/')
 
-@login_required
+@login_required(login_url='signin')
 def myFavorite(request):
     if not request.user.is_authenticated:
         return redirect('login')
@@ -442,7 +505,7 @@ def myFavorite(request):
     except Post.DoesNotExist:
         return redirect('/')
 
-@login_required
+@login_required(login_url='signin')
 def myFavoriteAdd(request,post_id):
     if not request.user.is_authenticated:
         return redirect('login')
@@ -458,7 +521,7 @@ def myFavoriteAdd(request,post_id):
 
     return redirect(request.META.get('HTTP_REFERER', '/'))
 
-@login_required
+@login_required(login_url='signin')
 def comfirmEmail(request):
     verification_code = ''.join(random.choices('0123456789', k=6))
 
@@ -483,7 +546,7 @@ def comfirmEmail(request):
         messages.error(request, 'خطا در ارسال ایمیل')
         return redirect(request.META.get('HTTP_REFERER', '/'))
 
-@login_required
+@login_required(login_url='signin')
 def verifyEmail(request):
     if request.method == 'POST':
         user_code = request.POST.get('verification_code')
@@ -516,7 +579,7 @@ def verifyEmail(request):
 
     return render(request,'verify_email.html')
 
-@login_required
+@login_required(login_url='signin')
 def verifyPhone(request):
     if request.method == 'POST':
         user_phone = request.POST.get('verification_phone')
@@ -554,7 +617,7 @@ def verifyPhone(request):
     else:
         return render(request,'verify_phone.html')
 
-@login_required
+@login_required(login_url='signin')
 def confirmPhone(request):
     try:
         user_code = request.POST.get('verification_code')
@@ -586,7 +649,7 @@ def confirmPhone(request):
     except Profile.DoesNotExist:
         messages.error(request, 'پروفایل کاربر یافت نشد.')
 
-@login_required
+@login_required(login_url='signin')
 def changePassword(request):
     if request.method == 'POST':
         try:
@@ -616,7 +679,7 @@ def changePassword(request):
             return redirect(request.META.get('HTTP_REFERER', '/'))
     return render(request, 'change_password.html')
 
-@login_required
+@login_required(login_url='signin')
 def end_session(request, session_key):
     if request.method == 'POST':
         session = get_object_or_404(Session, session_key=session_key)
@@ -626,7 +689,7 @@ def end_session(request, session_key):
 
     return redirect('/')
 
-@login_required
+@login_required(login_url='signin')
 def forgotPassword(request):
     if request.method == 'POST':
         user_code = request.POST.get('code')
@@ -689,7 +752,7 @@ def forgotPassword(request):
             messages.error(request, 'خطا در ارسال ایمیل')
             return redirect(request.META.get('HTTP_REFERER', '/'))
 
-@login_required
+@login_required(login_url='signin')
 def privatePublic(request):
     user_profile = Profile.objects.get(user=request.user)
     if user_profile.private_public:
@@ -699,3 +762,46 @@ def privatePublic(request):
         user_profile.private_public = True
         user_profile.save()
     return redirect(request.META.get('HTTP_REFERER', '/'))
+
+@login_required(login_url='signin')
+@require_POST
+def acceptRequest(request,pk):
+    if request.method == 'POST':
+        user_follower = User.objects.get(username=pk)
+        user_request = RequestFollow.objects.get(user=request.user,follower=user_follower)
+        user_follower = FollowersCount.objects.create(user=request.user.username, follower=user_request.follower)
+        user_follower.save()
+        user_request.delete()
+    return redirect(request.META.get('HTTP_REFERER', '/'))
+
+@login_required(login_url='signin')
+def following(request, pk):
+    user_object = User.objects.get(username=request.user.username)
+    user_profile = Profile.objects.get(user=user_object)
+
+    followed_usernames = FollowersCount.objects.filter(
+        follower=pk
+    ).values_list('user', flat=True)
+
+    profiles = Profile.objects.filter(user__username__in=followed_usernames)
+
+    return render(request, 'following.html', {
+        'profiles': profiles,
+        'user_profile': user_profile
+    })
+
+@login_required(login_url='signin')
+def followers(request,pk):
+    user_object = User.objects.get(username=request.user.username)
+    user_profile = Profile.objects.get(user=user_object)
+
+    followed_usernames = FollowersCount.objects.filter(
+        user=pk
+    ).values_list('follower', flat=True)
+
+    profiles = Profile.objects.filter(user__username__in=followed_usernames)
+
+    return render(request, 'following.html', {
+        'profiles': profiles,
+        'user_profile': user_profile
+    })

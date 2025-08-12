@@ -9,6 +9,8 @@ urlpatterns = [
     path('follow', views.follow, name='follow'),
     path('search', views.search, name='search'),
     path('profile/<str:pk>', views.profile, name='profile'),
+    path('following/<str:pk>', views.following, name='following'),
+    path('followers/<str:pk>', views.followers, name='followers'),
     path('like-post', views.like_post, name='like-post'),
     path('signup', views.signup, name='signup'),
     path('signin', views.signin, name='signin'),
@@ -28,4 +30,5 @@ urlpatterns = [
     path('end-session/<str:session_key>/', views.end_session, name='end_session'),
     path('forgot-password', views.forgotPassword, name='forgot_password'),
     path('private-public', views.privatePublic, name='private_public'),
+    path('accept-request/<str:pk>/', views.acceptRequest, name='accept-request'),
 ]
