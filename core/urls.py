@@ -33,5 +33,6 @@ urlpatterns = [
     path('accept-request/<str:pk>/', views.acceptRequest, name='accept-request'),
     path("message/<str:room_name>/", views.messageRoom, name="message_room"),
     path("send_message/<str:room_name>/", views.messageSend, name="send_message"),
+    path("delete_message/<str:message_id>/", views.messagesDelete, name="delete_message"),
     path("messages", views.messagesChat, name="messages"),
 ]

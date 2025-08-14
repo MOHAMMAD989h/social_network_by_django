@@ -279,10 +279,11 @@ def settings(request):
 
 @login_required(login_url='signin')
 def upload(request):
-
     if request.method == 'POST':
         user = request.user.username
         image = request.FILES.get('image_upload')
+        if image is None:
+            return redirect('/')
         caption = request.POST['caption']
 
         new_post = Post.objects.create(caption=caption,user=user,image=image)
@@ -492,21 +493,8 @@ def post(request,post_id):
             post = Post.objects.filter(id=post_id).prefetch_related('comments__user__profile')
 
 
-        user_profile_post = Profile.objects.filter(private_public=False)
-        posts = []
 
-        for user in user_profile_post:
-            if not user.private_public:
-                posts.append(Post.objects.filter(user=user.user))
-
-        user_following = FollowersCount.objects.filter(follower=request.user.username)
-        for user in user_following:
-            posts.append(Post.objects.filter(user=user.user))
-
-        posts = list(set(chain(*posts)))
-
-        random.shuffle(posts)
-        posts = posts[:3]
+        posts = list(Post.objects.exclude(id=post_id).order_by('?')[:3])
 
         return render(request, 'post.html', {'user_profile': user_profile,'posts': post,'other_posts': posts})
     except Post.DoesNotExist:
@@ -911,3 +899,12 @@ def messageSend(request, room_name):
     except User.DoesNotExist:
         messages.error(request, 'کاربر مورد نظر یافت نشد')
         return redirect('message_room', room_name=room_name)
+
+@login_required(login_url='signin')
+@require_POST
+def messagesDelete(request, message_id):
+    message = Message.objects.get(id=message_id,sender=request.user)
+    if message is None:
+        messages.error(request, 'sometimes wet wrong')
+    message.delete()
+    return redirect(request.META.get('HTTP_REFERER', '/'))

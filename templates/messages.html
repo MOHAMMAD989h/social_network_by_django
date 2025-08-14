@@ -82,7 +82,7 @@
                             {% if message.file.url|lower|slice:'-4:' == '.jpg' or message.file.url|lower|slice:'-5:' == '.jpeg' or message.file.url|lower|slice:'-4:' == '.png' %}
                                 <img src="{{ message.file.url }}" style="max-width:100%;border-radius:8px">
                             {% else %}
-                                <a href="{{ message.file.url }}" download>دانلود فایل</a>
+                                <a href="{{ message.file.url }}" download><h1> DOWNLOAD FILE </h1></a>
                             {% endif %}
                         {% endif %}
                         {{ message.text }}
@@ -90,6 +90,14 @@
                     <small style="color:#666;display:block;text-align:{% if message.sender == request.user %}right{% else %}left{% endif %};margin-top:5px">
                         {{ message.timestamp|date:"H:i - Y/m/d" }}
                     </small>
+                    {% if request.user == message.sender %}
+                    <small style="color:#666;display:block;text-align:{% if message.sender == request.user %}right{% else %}left{% endif %};margin-top:5px">
+                        <form action="{% url 'delete_message' message.id %}" method="post">
+                                    {% csrf_token %}
+                            <button>delete</button>
+                        </form>
+                    </small>
+                    {% endif %}
                 </div>
             </div>
             {% endfor %}
@@ -126,8 +134,7 @@ function refreshChat() {
 
             document.getElementById('chat-container').innerHTML = newContent;
 
-            const container = document.getElementById('chat-container');
-            container.scrollTop = container.scrollHeight;
+
         });
 }
 
