@@ -31,5 +31,7 @@ urlpatterns = [
     path('forgot-password', views.forgotPassword, name='forgot_password'),
     path('private-public', views.privatePublic, name='private_public'),
     path('accept-request/<str:pk>/', views.acceptRequest, name='accept-request'),
-    path("message/<str:room_name>/", views.message_room, name="message_room"),
+    path("message/<str:room_name>/", views.messageRoom, name="message_room"),
+    path("send_message/<str:room_name>/", views.messageSend, name="send_message"),
+    path("messages", views.messagesChat, name="messages"),
 ]

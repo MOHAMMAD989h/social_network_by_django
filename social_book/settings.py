@@ -31,7 +31,6 @@ ALLOWED_HOSTS = [
                  ]
 
 
-# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -46,14 +45,10 @@ INSTALLED_APPS = [
 
 ASGI_APPLICATION = 'social_book.asgi.application'
 
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [("127.0.0.1", 6379)],
-        },
-    },
-}
+
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

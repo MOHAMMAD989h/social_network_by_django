@@ -20,51 +20,81 @@
 <div class="theme-layout"></div>
 
 <section>
-    <div class="feature-photo relative">
-        <!-- عکس پس‌زمینه -->
-        <figure class="w-full overflow-hidden">
-            <img src="{{ user_profile.profilebackground.url }}" alt="cover photo"
-                 class="w-full h-64 sm:h-80 md:h-96 object-cover">
+    <div class="feature-photo">
+        <figure style="width: 100%; height: auto; max-height: 500px; overflow: hidden;">
+            <img src="{{ user_profile.profilebackground.url }}" alt=""  style="width: 100%; height: auto; max-height: 500px; object-fit: cover;">
         </figure>
 
-        <!-- آواتار و دکمه‌ها -->
-        <div class="container mx-auto px-4 -mt-16 relative z-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-
-            <!-- آواتار -->
-            <div class="flex-shrink-0">
-                <img src="{{ user_profile.profileimg.url }}" alt="avatar"
-                     class="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white object-cover shadow-lg">
-            </div>
-
-            <!-- دکمه‌ها و آمار -->
-            <div class="flex flex-col sm:flex-row sm:items-center sm:gap-6 gap-2 text-white">
-                <span class="text-lg font-bold">
-                    {% if user_post_length == 0 %}No Post{% elif user_post_length == 1 %}1 Post{% else %}{{ user_post_length }} Posts{% endif %}
+        <form action="/follow" method="POST">
+            {% csrf_token %}
+            <div class="add-btn responsive-btns">
+                <span>
+                        <a href="/" title="Home" style="display: inline-block; margin-left: 20px; color: black;">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="black" width="24" height="24" viewBox="0 0 24 24">
+                                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                            </svg>
+                        </a>
                 </span>
-                <span class="text-lg">
+
+                {% if user_post_length == 0 %}
+                    <span style="color: white; font-size: 27px;"><b>No Post</b></span>
+                {% elif user_post_length == 1 %}
+                    <span style="color: white; font-size: 27px;"><b>1 Post</b></span>
+                {% else %}
+                    <span style="color: white; font-size: 27px;"><b>{{ user_post_length }} Posts</b></span>
+                {% endif %}
+
+                <span style="color: white; font-size: 27px;">
                     <a href="{% url 'followers' pk=user_object.username %}">{{ user_followers }} {{ user_followers|pluralize:"follower,followers" }}</a>
                 </span>
-                <span class="text-lg">
-                    <a href="{% url 'following' pk=user_object.username %}">{{ user_following }} following</a>
-                </span>
+                <span style="color: white; font-size: 27px;"><a href="{% url 'following' pk=user_object.username %}">{{ user_following }} following</a></span>
+
+                <input type="hidden" name="follower" value="{{ user.username }}" />
+                <input type="hidden" name="user" value="{{ user_object.username }}" />
+                {% if user_object.username == user.username %}
+                <a href="/my-favorite">My Favorite</a>
+                {% endif %}
 
                 {% if user_object.username != user.username %}
-                <a href="{% url 'message_room' user_object.username %}" id="connect_websocket" data-room-name="{{ user_object.username }}"
-                   class="px-4 py-2 bg-blue-500 rounded-md hover:bg-blue-600 transition">Message</a>
-                <form method="post" action="/follow">
-                    {% csrf_token %}
-                    <input type="hidden" name="follower" value="{{ user.username }}">
-                    <input type="hidden" name="user" value="{{ user_object.username }}">
-                    <button type="submit" class="px-4 py-2 bg-pink-400 rounded-md hover:bg-pink-500 transition">{{ button_text }}</button>
-                </form>
-                {% else %}
-                <a href="/settings" class="px-4 py-2 bg-gray-500 rounded-md hover:bg-gray-600 transition">Account Settings</a>
+                    <a href="{% url 'message_room' user_object.username %}" id="connect_websocket" >Message</a>
                 {% endif %}
+
+                <input type="hidden" value="{{user.username}}" name="follower" />
+                <input type="hidden" value="{{user_object.username}}" name="user" />
+
+                {% if user_object.username == user.username %}
+                    <a href="/settings">Account Settings</a>
+                {% else %}
+                <form method="post" action="/follow"><button type="submit" style="background-color: #ffc0cb; border: none; padding: 8px 15px;">{{ button_text }}</button></form>
+                {% endif %}
+
+            </div>
+        </form>
+
+
+
+        <div class="container-fluid">
+            <div class="row merged">
+                <div class="col-lg-2 col-sm-3">
+                    <div class="user-avatar">
+                        <figure>
+                            <img src="{{ user_profile.profileimg.url }}" alt="" style="width: 100%; height: auto; max-height: 250px; object-fit: cover;">
+                        </figure>
+                    </div>
+                </div>
+                <div class="col-lg-10 col-sm-9">
+                    <div class="timeline-info">
+                        <ul>
+                            <li class="admin-name">
+                                <h5 style="color: black; white-space: nowrap; font-size: 27px;"><b>@{{ user_profile.user.username }}</b></h5>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </section>
-
 
 <section>
     <div class="bio" style="margin: 20px; font-size: 18px;">
@@ -249,36 +279,6 @@
 <script src="{% static 'assets/js/uikit.js' %}"></script>
 <script src="{% static 'assets/js/simplebar.js' %}"></script>
 <script src="{% static 'assets/js/custom.js' %}"></script>
-<script>
-document.getElementById('connect_websocket').onclick = function(e) {
-  e.preventDefault();
-
-  const connectButton = document.getElementById('connect_websocket');
-
-  const roomName = connectButton.dataset.roomName;
-
-  const wsUrl = `ws://127.0.0.1:8001/ws/message/${roomName}/`;
-
-  const chatSocket = new WebSocket(wsUrl);
-
-  chatSocket.onopen = function(e) {
-    console.log("WebSocket connection established!");
-  };
-
-  chatSocket.onmessage = function(e) {
-    const data = JSON.parse(e.data);
-    console.log(data.message);
-  };
-
-  chatSocket.onclose = function(e) {
-    console.log("WebSocket connection closed unexpectedly!");
-  };
-
-  chatSocket.onerror = function(e) {
-    console.error("WebSocket error observed:", e);
-  };
-};
-</script>
 
 </body>
 </html>

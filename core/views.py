@@ -19,7 +19,8 @@ from django.core.mail import send_mail
 from django.conf import settings as django_settings
 from django.contrib.auth.hashers import check_password
 
-from core.models import User, Profile, Post, LikePost, FollowersCount, Comments, MyFavorite, RequestFollow
+from core.models import User, Profile, Post, LikePost, FollowersCount, Comments, MyFavorite, RequestFollow, \
+    Conversation, Message
 
 
 @login_required(login_url='signin')
@@ -803,11 +804,88 @@ def followers(request,pk):
         'user_profile': user_profile
     })
 
-
 @login_required(login_url='signin')
-def message_room(request,room_name):
+def messageRoom(request, room_name):
     user_object = User.objects.get(username=request.user.username)
     user_profile = Profile.objects.get(user=user_object)
+    other_user = User.objects.get(username=room_name)
+    other_user_profile = Profile.objects.get(user=other_user)
+
+    conversation_qs = Conversation.objects.filter(participants=request.user).filter(participants=other_user)
+    if conversation_qs.exists():
+        conversation = conversation_qs.first()
+    else:
+        conversation = Conversation.objects.create()
+        conversation.participants.set([request.user, other_user])
+        conversation.save()
+
+    messages = conversation.messages.all().order_by('timestamp')
+
     return render(request, "messages.html", {
-        "room_name": room_name, "user_profile": user_profile
+        "room_name": room_name,
+        "user_profile": user_profile,
+        "other_user_profile": other_user_profile,
+        "messages": messages
     })
+
+@login_required(login_url='signin')
+def messagesChat(request):
+    user_object = User.objects.get(username=request.user.username)
+    user_profile = Profile.objects.get(user=user_object),
+
+    user = request.user
+    conversations = Conversation.objects.filter(participants=user)
+
+    chat_list = []
+    for conv in conversations:
+        other_users = conv.participants.exclude(id=user.id)
+        for other_user in other_users:
+            profile = Profile.objects.get(user=other_user)
+            last_msg = conv.messages.last()
+            chat_list.append({
+                'profile': profile,
+                'last_message': last_msg
+            })
+
+    return render(request, 'chats.html', {
+        'user_profile': user_profile,
+        'chat_list': chat_list,
+        'user_object': user_object,
+    })
+
+
+@login_required(login_url='signin')
+@require_POST
+def messageSend(request, room_name):
+    try:
+        other_user = User.objects.get(username=room_name)
+
+        MAX_FILE_SIZE = 100 * 1024 * 1024  # 5MB
+        file = request.FILES.get('file', None)
+
+        if file and file.size > MAX_FILE_SIZE:
+            messages.error(request, 'حجم فایل باید کمتر از 100 مگابایت باشد')
+            return redirect('message_room', room_name=room_name)
+
+        conversation = Conversation.objects.filter(
+            participants=request.user
+        ).filter(
+            participants=other_user
+        ).distinct().first()
+
+        if not conversation:
+            conversation = Conversation.objects.create()
+            conversation.participants.add(request.user, other_user)
+
+        Message.objects.create(
+            conversation=conversation,
+            sender=request.user,
+            text=request.POST.get('text', ''),
+            file=file
+        )
+
+        return redirect('message_room', room_name=room_name)
+
+    except User.DoesNotExist:
+        messages.error(request, 'کاربر مورد نظر یافت نشد')
+        return redirect('message_room', room_name=room_name)

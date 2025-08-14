@@ -56,58 +56,89 @@
                 </div>
             </header>
 
-
-    <div class="main_content">
-        <div id="chat-container" class="p-4" style="height: 600px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px;">
+            <div  style="display:flex;justify-content:center;align-items:center;height:100vh;background-color:#f5f5f5">
+    <div id="chat-box" style="width:80%;max-width:900px;height:80%;display:flex;flex-direction:column;background-color:#fff;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.15);overflow:hidden">
+            <!-- هدر چت با اطلاعات کاربر مقابل -->
+            <div style="display:flex;align-items:center;padding:15px;border-bottom:1px solid #eee;background-color:#f9f9f9">
+                <a href="{% url 'profile' pk=other_user_profile.user.username %}" style="display:flex;align-items:center;text-decoration:none;color:inherit">
+                    <img src="{{ other_user_profile.profileimg.url }}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;margin-right:10px">
+                    <div>
+                <h4 style="margin:0;font-size:16px">{{ other_user_profile.user.username }}</h4>
+                </div>
+                </a>
             </div>
-        <div class="chat-input-area p-4 border-t">
-            <input type="text" id="chat-message-input" class="uk-input" placeholder="Type a message...">
-            <button id="chat-message-submit" class="uk-button uk-button-primary mt-2">Send</button>
+
+        <!-- بخش پیام‌ها -->
+        <div id="chat-container" style="flex:1;overflow-y:auto;padding:20px">
+            {% for message in messages %}
+            <div style="margin-bottom:15px;display:flex;flex-direction:{% if message.sender == request.user %}row-reverse{% else %}row{% endif %}">
+                <img src="{% if message.sender == request.user %}{{ user_profile.profileimg.url }}{% else %}{{ other_user_profile.profileimg.url }}{% endif %}"
+                     style="width:35px;height:35px;border-radius:50%;object-fit:cover;margin:0 10px">
+                <div style="max-width:70%">
+                    <div style="background-color:{% if message.sender == request.user %}#007bff{% else %}#f1f1f1{% endif %};
+                                color:{% if message.sender == request.user %}white{% else %}black{% endif %};
+                                padding:10px 15px;border-radius:18px;word-break:break-word">
+                        {% if message.file %}
+                            {% if message.file.url|lower|slice:'-4:' == '.jpg' or message.file.url|lower|slice:'-5:' == '.jpeg' or message.file.url|lower|slice:'-4:' == '.png' %}
+                                <img src="{{ message.file.url }}" style="max-width:100%;border-radius:8px">
+                            {% else %}
+                                <a href="{{ message.file.url }}" download>دانلود فایل</a>
+                            {% endif %}
+                        {% endif %}
+                        {{ message.text }}
+                    </div>
+                    <small style="color:#666;display:block;text-align:{% if message.sender == request.user %}right{% else %}left{% endif %};margin-top:5px">
+                        {{ message.timestamp|date:"H:i - Y/m/d" }}
+                    </small>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- بخش ارسال پیام -->
+        <div class="chat-input-area" style="border-top:1px solid #ccc;padding:10px;display:flex;gap:10px;align-items:center">
+            <form method="post" action="{% url 'send_message' room_name %}" enctype="multipart/form-data" style="display:flex;width:100%">
+                {% csrf_token %}
+                <button type="button" id="file-upload-button" style="padding:10px;border:none;background:none;cursor:pointer;font-size:18px;color:#666">📎</button>
+                <input type="file" id="file-upload" name="file" style="display:none">
+                <input type="text" id="chat-message-input" name="text" placeholder="Type a message..." style="flex:1;padding:10px;border-radius:6px;border:1px solid #ccc">
+                <button type="submit" id="chat-message-submit" style="padding:10px 20px;border:none;border-radius:6px;background-color:#007bff;color:#fff">Send</button>
+            </form>
         </div>
     </div>
+</div>
 
 <script>
-        const roomName = '{{ room_name }}';
-        const wsUrl = `ws://127.0.0.1:8001/ws/message/${roomName}/`;
-        const chatSocket = new WebSocket(wsUrl);
+document.getElementById('file-upload-button').addEventListener('click', function() {
+    document.getElementById('file-upload').click();
+});
+</script>
 
-        const chatLog = document.getElementById('chat-container');
-        const chatInput = document.getElementById('chat-message-input');
-        const chatSubmit = document.getElementById('chat-message-submit');
+            <script>
+// تابع برای رفرش محتوای چت
+function refreshChat() {
+    fetch(window.location.href)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newContent = doc.getElementById('chat-container').innerHTML;
 
-        chatSocket.onopen = function(e) {
-            console.log("WebSocket connection established!");
-        };
+            document.getElementById('chat-container').innerHTML = newContent;
 
-        chatSocket.onmessage = function(e) {
-            const data = JSON.parse(e.data);
-            chatLog.innerHTML += data.html;
-            chatLog.scrollTop = chatLog.scrollHeight;
-        };
+            const container = document.getElementById('chat-container');
+            container.scrollTop = container.scrollHeight;
+        });
+}
 
-        chatSocket.onclose = function(e) {
-            console.log("WebSocket connection closed unexpectedly!");
-        };
+// تنظیم تایمر برای رفرش هر ثانیه
+setInterval(refreshChat, 1000); // 1000 میلی‌ثانیه = 1 ثانیه
 
-        chatSocket.onerror = function(e) {
-            console.error("WebSocket error observed:", e);
-        };
-
-        chatSubmit.onclick = function(e) {
-            const message = chatInput.value;
-            if (message) {
-                chatSocket.send(JSON.stringify({ 'message': message }));
-                chatInput.value = '';
-            }
-        };
-
-        chatInput.onkeyup = function(e) {
-            if (e.key === 'Enter') {
-                chatSubmit.click();
-            }
-        };
-    </script>
-
+window.onload = function() {
+    const container = document.getElementById('chat-container');
+    container.scrollTop = container.scrollHeight;
+};
+</script>
 
  <!-- Scripts -->
     <script src="{% static 'assets/js/tippy.all.min.js' %}"></script>
