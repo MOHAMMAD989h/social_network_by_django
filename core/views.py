@@ -335,11 +335,11 @@ def profile(request, pk):
 
     user_followers = len(FollowersCount.objects.filter(user=pk))
     user_following = len(FollowersCount.objects.filter(follower=pk))
-    user_follow = FollowersCount.objects.filter(user=user_object, follower=request.user.username)
+    user_follow = FollowersCount.objects.filter(user=user_object.username, follower=request.user.username)
 
     private_public = True
 
-    if  user_profile.private_public or user_follow is None:
+    if  user_profile.private_public or not user_follow.exists():
         private_public = False
 
     context = {
@@ -360,27 +360,24 @@ def follow(request):
         follower = request.POST['follower']
         user = request.POST['user']
         user_object = User.objects.get(username=user)
+        is_private = Profile.objects.get(user=user_object).private_public  # True = Private
 
-        if Profile.objects.get(user=user_object).private_public:
-            if RequestFollow.objects.filter(user=user, follower=follower).first():
-                delete_request = RequestFollow.objects.get(user=user, follower=follower)
-                delete_request.delete()
-                return redirect('/profile/'+ user)
-            else:
-                new_request = RequestFollow.objects.create(user=user, follower=follower)
-                new_request.save()
-                return redirect('/profile/' + user)
+        if FollowersCount.objects.filter(user=user, follower=follower).exists():
+            FollowersCount.objects.filter(user=user, follower=follower).delete()
+            return redirect('/profile/' + user)
+
+        if RequestFollow.objects.filter(user=user, follower=follower).exists():
+            RequestFollow.objects.filter(user=user, follower=follower).delete()
+            return redirect('/profile/' + user)
+
+        if is_private:
+            RequestFollow.objects.create(user=user, follower=follower)
         else:
-            if FollowersCount.objects.filter(user=user, follower=follower).first():
-                delete_follower = FollowersCount.objects.get(user=user, follower=follower)
-                delete_follower.delete()
-                return redirect('/profile/'+ user)
-            else:
-                new_follower = FollowersCount.objects.create(user=user, follower=follower)
-                new_follower.save()
-                return redirect('/profile/'+ user)
-    else:
-        return redirect('/')
+            FollowersCount.objects.create(user=user, follower=follower)
+
+        return redirect('/profile/' + user)
+
+    return redirect('/')
 
 @login_required(login_url='signin')
 def search(request):
@@ -804,4 +801,13 @@ def followers(request,pk):
     return render(request, 'following.html', {
         'profiles': profiles,
         'user_profile': user_profile
+    })
+
+
+@login_required(login_url='signin')
+def message_room(request,room_name):
+    user_object = User.objects.get(username=request.user.username)
+    user_profile = Profile.objects.get(user=user_object)
+    return render(request, "messages.html", {
+        "room_name": room_name, "user_profile": user_profile
     })

@@ -57,6 +57,56 @@
             </header>
 
 
+    <div class="main_content">
+        <div id="chat-container" class="p-4" style="height: 600px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px;">
+            </div>
+        <div class="chat-input-area p-4 border-t">
+            <input type="text" id="chat-message-input" class="uk-input" placeholder="Type a message...">
+            <button id="chat-message-submit" class="uk-button uk-button-primary mt-2">Send</button>
+        </div>
+    </div>
+
+<script>
+        const roomName = '{{ room_name }}';
+        const wsUrl = `ws://127.0.0.1:8001/ws/message/${roomName}/`;
+        const chatSocket = new WebSocket(wsUrl);
+
+        const chatLog = document.getElementById('chat-container');
+        const chatInput = document.getElementById('chat-message-input');
+        const chatSubmit = document.getElementById('chat-message-submit');
+
+        chatSocket.onopen = function(e) {
+            console.log("WebSocket connection established!");
+        };
+
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            chatLog.innerHTML += data.html;
+            chatLog.scrollTop = chatLog.scrollHeight;
+        };
+
+        chatSocket.onclose = function(e) {
+            console.log("WebSocket connection closed unexpectedly!");
+        };
+
+        chatSocket.onerror = function(e) {
+            console.error("WebSocket error observed:", e);
+        };
+
+        chatSubmit.onclick = function(e) {
+            const message = chatInput.value;
+            if (message) {
+                chatSocket.send(JSON.stringify({ 'message': message }));
+                chatInput.value = '';
+            }
+        };
+
+        chatInput.onkeyup = function(e) {
+            if (e.key === 'Enter') {
+                chatSubmit.click();
+            }
+        };
+    </script>
 
 
  <!-- Scripts -->

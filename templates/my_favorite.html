@@ -90,9 +90,12 @@
                                         </a>
                                     </li>
                                     <li>
-                                        <a href="#" class="flex items-center px-3 py-2 text-red-500 hover:bg-red-100 hover:text-red-500 rounded-md">
-                                            <i class="uil-trash-alt mr-1"></i> Delete Post
-                                        </a>
+                                        <form method="POST" action="/post/{{ post.id }}" class="flex items-center space-x-2">
+                                                {% csrf_token %}
+                                                <button type="submit" class="w-full text-left flex items-center px-3 py-2 hover:bg-gray-200 hover:text-gray-800 rounded-md">
+                                                <i class="uil uil-eye mr-2"></i> See Post
+                                            </button>
+                                        </form>
                                     </li>
                                 </ul>
                             </div>
@@ -116,7 +119,9 @@
 
 
                             <div class="py-3 px-4 space-y-3">
-
+                                <p>
+                                    <a href="/profile/{{post.user}}"><strong>{{post.user}}</strong></a> {{post.caption}}
+                                </p>
                                 <div class="flex space-x-4 lg:font-bold">
                                     <a href="/like-post?post_id={{post.id}}" class="flex items-center space-x-2">
                                         <div class="p-2 rounded-full text-black">
@@ -142,77 +147,65 @@
                                 <h6 style="font-size: 12px;">
                                     {{post.created_at}}
                                 </h6>
-                                <p>
-                                    <a href="/profile/{{post.user}}"><strong>{{post.user}}</strong></a> {{post.caption}}
-                                </p>
 
                             </div>
 
+                                <!-- Comments Section -->
+                                <div class="border-t border-gray-200 px-4 py-3">
+                            <h3 class="font-semibold mb-3">Comments</h3>
+
+                            <!-- Existing Comments -->
+                            <div class="space-y-3 mb-4">
+                                {% for comment in post.comments.all %}
+                            <div class="flex items-start space-x-3">
+                                <a href="/profile/{{ comment.user.username }}">
+                                    <img src="{{ comment.user.profile.profileimg.url }}" class="w-8 h-8 rounded-full">
+                                </a>
+                            <div>
+                                <div class="bg-gray-100 rounded-lg px-3 py-2">
+                                    <a href="/profile/{{ comment.user.username }}" class="font-semibold text-sm">
+                                        {{ comment.user.username }}
+                                    </a>
+                                    <p class="text-sm" name="comment_txt">{{ comment.comment }}</p>
+                              </div>
+                                {% if comment.user.username == user.username %}
+                                <form method="POST" action="/comment/delete/{{ post.id }}" class="flex items-center space-x-2">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="comment_txt" value="{{ comment.comment }}">
+                                    <button style="font-size : 8px;" type="submit">delete</button>
+                                </form>
+                                {% endif %}
+                                <span class="text-xs text-gray-500">{{ comment.created_at|timesince }} ago</span>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-gray-500 text-sm">No comments yet.</p>
+                        {% endfor %}
                         </div>
 
-    <!-- Comments Section -->
-    <div class="border-t border-gray-200 px-4 py-3">
-        <h3 class="font-semibold mb-3">Comments</h3>
-
-        <!-- Existing Comments -->
-        <div class="space-y-3 mb-4">
-            {% for comment in post.comments.all %}
-                <div class="flex items-start space-x-3">
-                    <a href="/profile/{{ comment.user.username }}">
-                        <img src="{{ comment.user.profile.profileimg.url }}" class="w-8 h-8 rounded-full">
-                    </a>
-                    <div>
-                        <div class="bg-gray-100 rounded-lg px-3 py-2">
-                            <a href="/profile/{{ comment.user.username }}" class="font-semibold text-sm">
-                                {{ comment.user.username }}
-                            </a>
-                            <p class="text-sm" name="comment_txt">{{ comment.comment }}</p>
-                        </div>
-                        {% if comment.user.username == user.username %}
-                        <form method="POST" action="/comment/delete/{{ post.id }}" class="flex items-center space-x-2">
+                        <!-- Add Comment Form -->
+                        <form method="POST" action="/comment/{{ post.id }}" class="flex items-center space-x-2">
                             {% csrf_token %}
-                            <input type="hidden" name="comment_txt" value="{{ comment.comment }}">
-                            <button style="font-size : 8px;" type="submit">delete</button>
+                            <input type="text" name="comment_text" maxlength="500" placeholder="Add a comment..." class="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <button type="submit">
+                                send
+                                <i class="fa-solid fa-paper-plane-top"></i>
+                            </button>
+
+                            <p class="text-[10px] text-gray-400 ml-2" style="font-size:8px;">Max 500 letters</p>
                         </form>
-                        {% endif %}
-                        <span class="text-xs text-gray-500">{{ comment.created_at|timesince }} ago</span>
                     </div>
-                </div>
-            {% empty %}
-                <p class="text-gray-500 text-sm">No comments yet.</p>
-            {% endfor %}
-        </div>
 
-        <!-- Add Comment Form -->
-        <form method="POST" action="/comment/{{ post.id }}" class="flex items-center space-x-2">
-            {% csrf_token %}
-            <input type="text" name="comment_text" maxlength="500" placeholder="Add a comment..." class="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            <button type="submit">
-                send
-                <i class="fa-solid fa-paper-plane-top"></i>
-            </button>
+                        </div>
 
-            <p class="text-[10px] text-gray-400 ml-2" style="font-size:8px;">Max 500 letters</p>
-        </form>
-    </div>
+
                         {% endfor %}
 
-
-
-
                     </div>
-
-
-
                     </div>
-
                 </div>
-
-
             </div>
-
         </div>
-
     </div>
 
 

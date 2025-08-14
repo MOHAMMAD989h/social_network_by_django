@@ -88,11 +88,6 @@
                                             <i class="uil-favorite mr-1"></i> Add favorites
                                         </a>
                                     </li>
-                                    <li>
-                                        <a href="#" class="flex items-center px-3 py-2 text-red-500 hover:bg-red-100 hover:text-red-500 rounded-md">
-                                            <i class="uil-trash-alt mr-1"></i> Delete Post
-                                        </a>
-                                    </li>
                                 </ul>
                             </div>
                         </div>
@@ -113,6 +108,9 @@
                 </div>
 
                 <div class="py-3 px-4 space-y-3">
+                     <p>
+                        <a href="/profile/{{post.user}}"><strong>{{post.user}}</strong></a> {{post.caption}}
+                    </p>
                     <div class="flex space-x-4 lg:font-bold">
                         <a href="/like-post?post_id={{post.id}}" class="flex items-center space-x-2">
                             <div class="p-2 rounded-full text-black">
@@ -135,9 +133,6 @@
                     <h6 style="font-size: 12px;">
                         {{post.created_at}}
                     </h6>
-                    <p>
-                        <a href="/profile/{{post.user}}"><strong>{{post.user}}</strong></a> {{post.caption}}
-                    </p>
                 </div>
     <!-- Comments Section -->
     <div class="border-t border-gray-200 px-4 py-3">

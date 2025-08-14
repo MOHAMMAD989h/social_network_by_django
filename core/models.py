@@ -73,3 +73,24 @@ class MyFavorite(models.Model):
     def __str__(self):
         return self.user.username
 
+
+class Conversation(models.Model):
+    participants = models.ManyToManyField(User, related_name="chat_conversations")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Conversation {self.participants.__str__()}"
+
+
+class Message(models.Model):
+    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="messages")
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    text = models.TextField(blank=True, null=True)
+    file = models.FileField(upload_to='chat_files/', blank=True, null=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['timestamp']
+
+    def __str__(self):
+        return f"{self.sender.username}: {self.text[:20]}"

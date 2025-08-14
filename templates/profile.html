@@ -1,4 +1,5 @@
 {% load static %}
+
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
@@ -9,6 +10,11 @@
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="{% static 'css/color.css' %}">
     <link rel="stylesheet" href="{% static 'css/responsive.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/icons.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/uikit.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'assets/css/tailwind.css' %}">
 </head>
 <body>
 <div class="theme-layout"></div>
@@ -22,12 +28,13 @@
         <form action="/follow" method="POST">
             {% csrf_token %}
             <div class="add-btn">
-
-
-                <span style="color: white; font-size: 27px; margin-right: 520px;">
-                    <b><u><a href="/">Home</a></u></b>
+                <span>
+                        <a href="/" title="Home" style="display: inline-block; margin-left: 20px; color: black;">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="black" width="24" height="24" viewBox="0 0 24 24">
+                                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                            </svg>
+                        </a>
                 </span>
-
 
                 {% if user_post_length == 0 %}
                     <span style="color: white; font-size: 27px;"><b>No Post</b></span>
@@ -49,14 +56,18 @@
                 {% endif %}
 
                 {% if user_object.username != user.username %}
-                    <a href="/message/{{ user_object.username }}">Message</a>
+                    <a href="{% url 'message_room' user_object.username %}" id="connect_websocket" data-room-name="{{ user_object.username }}">Message</a>
                 {% endif %}
+
+                <input type="hidden" value="{{user.username}}" name="follower" />
+                <input type="hidden" value="{{user_object.username}}" name="user" />
 
                 {% if user_object.username == user.username %}
                     <a href="/settings">Account Settings</a>
                 {% else %}
-                    <button type="submit" style="background-color: #ffc0cb; border: none; padding: 8px 15px;">{{ button_text }}</button>
+                <form method="post" action="/follow"><button type="submit" style="background-color: #ffc0cb; border: none; padding: 8px 15px;">{{ button_text }}</button></form>
                 {% endif %}
+
             </div>
         </form>
 
@@ -107,9 +118,9 @@
                                     <div>
                                         <a href="/profile/{{ post.user }}" class="font-weight-bold">@{{ post.user }}</a>
                                     </div>
-                                                          <div>
-                            <a href="#"> <i class="icon-feather-more-horizontal text-2xl hover:bg-gray-200 rounded-full p-2 transition -mr-1 "></i> </a>
-                            <div class="bg-white w-56 shadow-md mx-auto p-2 mt-12 rounded-md text-gray-500 hidden text-base border border-gray-100" uk-drop="mode: hover;pos: top-right">
+                                    <div>
+                                        <a href="#"> <i class="icon-feather-more-horizontal text-2xl hover:bg-gray-200 rounded-full p-2 transition -mr-1 "></i> </a>
+                                        <div class="bg-white w-56 shadow-md mx-auto p-2 mt-12 rounded-md text-gray-500 hidden text-base border border-gray-100" uk-drop="mode: hover;pos: top-right">
                                 <ul class="space-y-1">
                                     <li>
                                         <a href="#" id="shareButton" data-id="{{ post.id }}" onclick="copyPostUrl()" class="flex items-center px-3 py-2 hover:bg-gray-200 hover:text-gray-800 rounded-md">
@@ -122,22 +133,27 @@
                                         </a>
                                     </li>
                                     <li>
-                                        <a href="#" class="flex items-center px-3 py-2 text-red-500 hover:bg-red-100 hover:text-red-500 rounded-md">
-                                            <i class="uil-trash-alt mr-1"></i> Delete Post
-                                        </a>
+                                        <form method="POST" action="/post/{{ post.id }}" class="flex items-center space-x-2">
+                                                {% csrf_token %}
+                                                <button type="submit" class="w-full text-left flex items-center px-3 py-2 hover:bg-gray-200 hover:text-gray-800 rounded-md">
+                                                <i class="uil uil-eye mr-2"></i> See Post
+                                            </button>
+                                        </form>
+                                    </li>
+                                    <li>
+                                        {% if post.user == user.username %}
+                                    <form action="/delete-post/" method="POST" class="flex items-center space-x-2" style="display: inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="post_id" value="{{ post.id }}">
+                                        <button type="submit" class="text-danger w-full text-left flex items-center px-3 py-2 hover:bg-gray-200 hover:text-gray-800 rounded-md" style="border: none; background: none; padding: 0; color: red;">
+                                            <i class="uil uil-trash mr-2"></i>  Delete Post
+                                        </button>
+                                    </form>
+                                    {% endif %}
                                     </li>
                                 </ul>
                             </div>
                         </div>
-                                    {% if post.user == user.username %}
-                                    <form action="/delete-post/" method="POST" style="display: inline;">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="post_id" value="{{ post.id }}">
-                                        <button type="submit" class="text-danger" style="border: none; background: none; padding: 0; color: red;">
-                                        Delete Post
-                                        </button>
-                                    </form>
-                                    {% endif %}
 
                                 </div>
 
@@ -154,6 +170,9 @@
                                     {% endif %}
                                     {% endif %}
                                 </div>
+                                <p>
+                                        <strong><a href="/profile/{{ post.user }}">@{{ post.user }}</a></strong> {{ post.caption }}
+                                    </p>
 
                                 <div class="d-flex justify-content-between align-items-center">
                                     <!-- Like Button -->
@@ -185,14 +204,10 @@
                                     <h6 style="font-size: 12px;">
                                     {{post.created_at}}
                                     </h6>
-                                    <p>
-                                        <strong><a href="/profile/{{ post.user }}">@{{ post.user }}</a></strong> {{ post.caption }}
-                                    </p>
                                 </div>
-                            </div>
 
-    <!-- Comments Section -->
-    <div class="border-t border-gray-200 px-4 py-3">
+                                <!-- Comments Section -->
+                                <div class="border-t border-gray-200 px-4 py-3">
         <h3 class="font-semibold mb-3">Comments</h3>
 
         <!-- Existing Comments -->
@@ -236,6 +251,8 @@
             <p class="text-[10px] text-gray-400 ml-2" style="font-size:8px;">Max 500 letters</p>
         </form>
     </div>
+                            </div>
+
                             {% endfor %}
                         </div>
                         {% else %}
@@ -252,7 +269,44 @@
 </section>
 
 <!-- Scripts -->
+<script data-cfasync="false" src="{% static '../../cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js' %}"></script><script src="{% static 'js/main.min.js' %}"></script>
 <script src="{% static 'js/main.min.js' %}"></script>
 <script src="{% static 'js/script.js' %}"></script>
+<script src="{% static 'assets/js/tippy.all.min.js' %}"></script>
+<script src="{% static 'assets/js/jquery-3.3.1.min.js' %}"></script>
+<script src="{% static 'assets/js/uikit.js' %}"></script>
+<script src="{% static 'assets/js/simplebar.js' %}"></script>
+<script src="{% static 'assets/js/custom.js' %}"></script>
+<script>
+document.getElementById('connect_websocket').onclick = function(e) {
+  e.preventDefault();
+
+  const connectButton = document.getElementById('connect_websocket');
+
+  const roomName = connectButton.dataset.roomName;
+
+  const wsUrl = `ws://127.0.0.1:8001/ws/message/${roomName}/`;
+
+  const chatSocket = new WebSocket(wsUrl);
+
+  chatSocket.onopen = function(e) {
+    console.log("WebSocket connection established!");
+  };
+
+  chatSocket.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+    console.log(data.message);
+  };
+
+  chatSocket.onclose = function(e) {
+    console.log("WebSocket connection closed unexpectedly!");
+  };
+
+  chatSocket.onerror = function(e) {
+    console.error("WebSocket error observed:", e);
+  };
+};
+</script>
+
 </body>
 </html>

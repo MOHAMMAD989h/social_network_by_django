@@ -81,75 +81,94 @@
     
                     </div>
 
-                 <div>
-                        <h3 class="text-xl mb-2"> Privacy and Security</h3>
-                        <p> </p>
+                    <div>
+                        <h3 class="text-xl mb-4 font-semibold border-b pb-2"> Privacy and Security</h3>
                     </div>
-                    <div class="bg-white rounded-md lg:shadow-lg shadow lg:p-6 p-4 col-span-2">
-                        <div>
-                            <div>
-                                {% if user_profile.email_confirmed  %}
-                                <a> Confirmed Email </a>
-                                {% else %}
-                                <a href="/confirm-email"> Confirm Email </a>
-                                {% endif %}
-                            </div>
-                            <div>
-                                {% if user_profile.phone_confirmed  %}
-                                <a> Confirmed Phone Number </a>
-                                {% else %}
-                                <a href="/verify-phone"> Confirm Phone Number </a>
-                                {% endif %}
-                            </div>
-                            <div>
-                            <a href="/change-password"> Change Password </a>
-                            </div>
-                            <div>
-                            <a href="/forgot-password"> Forgot Password </a>
-                            </div>
-                            <div>
-                                {% if user_profile.private_public %}
-                                <a href="/private-public"> Change to Public </a>
-                                {% else %}
-                                <a href="/private-public"> Change to Private </a>
-                                {% endif %}
-                            </div>
 
+                    <div  class="bg-white rounded-md lg:shadow-lg shadow lg:p-6 p-4 col-span-2">
+
+                        <!-- Email -->
+                        <div class="flex items-center p-3 rounded-lg border hover:bg-gray-50 transition">
+                            <ion-icon name="mail-outline" class="text-blue-500 text-2xl mr-3"></ion-icon>
+                            {% if user_profile.email_confirmed %}
+                            <span class="text-gray-800"> Confirmed Email</span>
+                            {% else %}
+                            <a href="/confirm-email" class="text-blue-600 hover:underline">Confirm Email</a>
+                            {% endif %}
                         </div>
 
-                        <div>
-                           <table class="table-sessions">
-                                <thead>
-                                <tr>
-                                    <th>سیستم عامل</th>
-                                    <th>مرورگر</th>
-                                    <th>دستگاه</th>
-                                    <th>تاریخ انقضا</th>
-                                    <th>اقدام</th>
-                                </tr>
-                            </thead>
-                        <tbody>
-                        {% for session in sessions %}
-                        <tr>
-                            <td>{{ session.ua_info.os_family }}</td>
-                            <td>{{ session.ua_info.browser_family }}</td>
-                            <td>{{ session.ua_info.device_type }}</td>
-                            <td>{{ session.expire_date }}</td>
-                            <td>
-                            <form action="{% url 'end_session' session.session_key %}" method="post">
-                                {% csrf_token %}
-                                <button type="submit">خروج</button>
-                            </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                        </tbody>
-                           </table>
+                        <!-- Phone -->
+                        <div class="flex items-center p-3 rounded-lg border hover:bg-gray-50 transition">
+                        <ion-icon name="call-outline" class="text-green-500 text-2xl mr-3"></ion-icon>
+                            {% if user_profile.phone_confirmed %}
+                        <span class="text-gray-800"> Confirmed Phone Number</span>
+                        {% else %}
+                            <a href="/verify-phone" class="text-blue-600 hover:underline">Confirm Phone Number</a>
+                        {% endif %}
                         </div>
+
+                        <!-- Change Password -->
+                        <a href="/change-password" class="flex items-center p-3 rounded-lg border hover:bg-gray-50 transition">
+                            <ion-icon name="lock-closed-outline" class="text-purple-500 text-2xl mr-3"></ion-icon>
+                            <span class="text-gray-800">Change Password</span>
+                        </a>
+
+                        <!-- Forgot Password -->
+                        <a href="/forgot-password" class="flex items-center p-3 rounded-lg border hover:bg-gray-50 transition">
+                            <ion-icon name="key-outline" class="text-orange-500 text-2xl mr-3"></ion-icon>
+                            <span class="text-gray-800">Forgot Password</span>
+                        </a>
+
+                        <!-- Private / Public -->
+                        <a href="/private-public" class="flex items-center p-3 rounded-lg border hover:bg-gray-50 transition">
+                            <ion-icon name="eye-outline" class="text-pink-500 text-2xl mr-3"></ion-icon>
+                            {% if user_profile.private_public %}
+                            <span class="text-gray-800">Change to Public</span>
+                            {% else %}
+                            <span class="text-gray-800">Change to Private</span>
+                            {% endif %}
+                        </a>
+
+                        <!-- Active Sessions -->
+                        <div class="mt-6">
+                            <h4 class="text-lg font-semibold mb-3 border-b pb-2">Active Sessions</h4>
+                            <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left border">
+                                <thead class="bg-gray-100 text-gray-700">
+                                    <tr>
+                                        <th class="p-2">سیستم عامل</th>
+                                        <th class="p-2">مرورگر</th>
+                                        <th class="p-2">دستگاه</th>
+                                        <th class="p-2">تاریخ انقضا</th>
+                                        <th class="p-2">اقدام</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for session in sessions %}
+                                    <tr class="border-t hover:bg-gray-50">
+                                        <td class="p-2">{{ session.ua_info.os_family }}</td>
+                                        <td class="p-2">{{ session.ua_info.browser_family }}</td>
+                                        <td class="p-2">{{ session.ua_info.device_type }}</td>
+                                        <td class="p-2">{{ session.expire_date }}</td>
+                                        <td class="p-2">
+                                            <form action="{% url 'end_session' session.session_key %}" method="post">
+                                                {% csrf_token %}
+                                            <button type="submit" class="text-red-500 hover:underline">خروج</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="p-3 text-center text-gray-500">هیچ نشست فعالی یافت نشد</td>
+                                    </tr>
+                                     {% endfor %}
+                                    </tbody>
+                            </table>
                     </div>
-                    <br>
+                </div>
 
                 </div>
+
 
             </div>
             
