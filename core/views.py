@@ -854,13 +854,13 @@ def messagesChat(request):
             last_msg = conv.messages.last()
             chat_list.append({
                 'profile': profile,
-                'last_message': last_msg
+                'last_message': last_msg,
+                'user_profile':user_profile,
             })
 
     return render(request, 'chats.html', {
         'user_profile': user_profile,
         'chat_list': chat_list,
-        'user_object': user_object,
     })
 
 

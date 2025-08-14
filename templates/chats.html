@@ -41,11 +41,16 @@
 
                         <!-- profile -->
 
+                        <a class="image-link" href="{% url 'message_room' request.user.username %}">
+                            Saved Message
+                        </a>
+
                         <a href="/" title="Home" style="display: inline-block; margin-left: 20px; color: black;">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="black" width="24" height="24" viewBox="0 0 24 24">
                                 <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
                             </svg>
                         </a>
+
 
                         <a href="#">
                             <img src="{{ user_profile.profileimg.url }}" class="header-avatar" alt="">
