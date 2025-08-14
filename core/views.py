@@ -434,6 +434,10 @@ def explore(request):
         posts.append(Post.objects.filter(user=user.user))
 
     posts = list(set(chain(*posts)))
+
+    random.shuffle(posts)
+    posts = posts[:50]
+
     return render(request, 'explore.html', {'user_profile': user_profile,'posts': posts})
 
 @login_required(login_url='signin')
@@ -484,9 +488,27 @@ def post(request,post_id):
         user_profile = Profile.objects.get(user=user_object)
         user_follow = FollowersCount.objects.filter(user=user_object, follower=request.user.username)
         post = ''
-        if user_profile.private_public or user_follow is not None:
+        if user_profile.private_public or not user_follow.exists():
             post = Post.objects.filter(id=post_id).prefetch_related('comments__user__profile')
-        return render(request, 'post.html', {'user_profile': user_profile,'posts': post})
+
+
+        user_profile_post = Profile.objects.filter(private_public=False)
+        posts = []
+
+        for user in user_profile_post:
+            if not user.private_public:
+                posts.append(Post.objects.filter(user=user.user))
+
+        user_following = FollowersCount.objects.filter(follower=request.user.username)
+        for user in user_following:
+            posts.append(Post.objects.filter(user=user.user))
+
+        posts = list(set(chain(*posts)))
+
+        random.shuffle(posts)
+        posts = posts[:3]
+
+        return render(request, 'post.html', {'user_profile': user_profile,'posts': post,'other_posts': posts})
     except Post.DoesNotExist:
         return redirect('/')
 
